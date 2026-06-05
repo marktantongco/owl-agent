@@ -1,0 +1,296 @@
+AI Skills Showcase — 87 Active Skills 
+
+ ⚡ ">
+
+{
+ "@context": "https://schema.org",
+ "@type": "ItemList",
+ "name": "AI Agent Skills Collection",
+ "description": "87 active AI agent skills across 11 categories",
+ "numberOfItems": 87,
+ "itemListElement": [
+ {"@type":"ListItem","position":1,"item":{"@type":"SoftwareApplication","name":"ui-ux-pro-max-v7","applicationCategory":"AISkill","description":"AI design intelligence — 60 styles, 48 palettes, 36 fonts, 24 industry rules, production-grade components"}},
+ {"@type":"ListItem","position":2,"item":{"@type":"SoftwareApplication","name":"anthropic-frontend-design","applicationCategory":"AISkill","description":"Bold aesthetics for AI-native interfaces, conversational UI, trust-forward design"}},
+ {"@type":"ListItem","position":3,"item":{"@type":"SoftwareApplication","name":"gsap-animations","applicationCategory":"AISkill","description":"Production-grade GSAP animation patterns — 24 patterns, ScrollTrigger, Flip plugin, React integration"}},
+ {"@type":"ListItem","position":4,"item":{"@type":"SoftwareApplication","name":"frontend-design","applicationCategory":"AISkill","description":"shadcn/ui + Tailwind + React component generation for production-ready UI"}},
+ {"@type":"ListItem","position":5,"item":{"@type":"SoftwareApplication","name":"vercel-web-design-guidelines","applicationCategory":"AISkill","description":"Comprehensive accessibility-first UX rules and performance budgets"}},
+ {"@type":"ListItem","position":6,"item":{"@type":"SoftwareApplication","name":"chain-of-thought","applicationCategory":"AISkill","description":"Step-by-step reasoning framework for complex problems"}},
+ {"@type":"ListItem","position":7,"item":{"@type":"SoftwareApplication","name":"socratic-method","applicationCategory":"AISkill","description":"Strategic questioning to uncover assumptions and guide discovery"}},
+ {"@type":"ListItem","position":8,"item":{"@type":"SoftwareApplication","name":"devils-advocate","applicationCategory":"AISkill","description":"Argue against premises to strengthen arguments and prevent confirmation bias"}},
+ {"@type":"ListItem","position":9,"item":{"@type":"SoftwareApplication","name":"simulation-sandbox","applicationCategory":"AISkill","description":"Test scenarios in safe simulated environments without real-world consequences"}},
+ {"@type":"ListItem","position":10,"item":{"@type":"SoftwareApplication","name":"mcp-builder","applicationCategory":"AISkill","description":"Build MCP servers with TypeScript + Python, full lifecycle planning"}},
+ {"@type":"ListItem","position":11,"item":{"@type":"SoftwareApplication","name":"superpowers","applicationCategory":"AISkill","description":"Spec-first development with TDD and sub-agent delegation"}},
+ {"@type":"ListItem","position":12,"item":{"@type":"SoftwareApplication","name":"deployment-manager","applicationCategory":"AISkill","description":"Deploy, monitor, update across GitHub Pages, Vercel, Netlify"}},
+ {"@type":"ListItem","position":13,"item":{"@type":"SoftwareApplication","name":"browser-use","applicationCategory":"AISkill","description":"Headful browser automation with natural language control"}},
+ {"@type":"ListItem","position":14,"item":{"@type":"SoftwareApplication","name":"web-artifacts-builder","applicationCategory":"AISkill","description":"Single-file HTML artifacts with React + Tailwind, zero dependencies"}},
+ {"@type":"ListItem","position":15,"item":{"@type":"SoftwareApplication","name":"vercel-react-best-practices","applicationCategory":"AISkill","description":"Production-grade React architecture, hooks patterns, SSR/SSG strategies"}},
+ {"@type":"ListItem","position":16,"item":{"@type":"SoftwareApplication","name":"explained-code","applicationCategory":"AISkill","description":"Beginner-friendly code explanation with analogies and diagrams"}},
+ {"@type":"ListItem","position":17,"item":{"@type":"SoftwareApplication","name":"seo-content-writer","applicationCategory":"AISkill","description":"SEO-optimized content creation with GEO optimization for AI answer engines"}},
+ {"@type":"ListItem","position":18,"item":{"@type":"SoftwareApplication","name":"humanizer","applicationCategory":"AISkill","description":"Strip AI writing patterns for human-like copy — anti-AI-detection rewriting"}},
+ {"@type":"ListItem","position":19,"item":{"@type":"SoftwareApplication","name":"social-media-manager","applicationCategory":"AISkill","description":"Platform-appropriate post generation for 30 days across LinkedIn, Twitter, Instagram, TikTok"}},
+ {"@type":"ListItem","position":20,"item":{"@type":"SoftwareApplication","name":"social-content-pillars","applicationCategory":"AISkill","description":"Monthly content calendar for multi-brand social media with 90-day editorial plan"}},
+ {"@type":"ListItem","position":21,"item":{"@type":"SoftwareApplication","name":"jtbd-research","applicationCategory":"AISkill","description":"8-step Jobs to be Done product research methodology"}},
+ {"@type":"ListItem","position":22,"item":{"@type":"SoftwareApplication","name":"gumroad-pipeline","applicationCategory":"AISkill","description":"Lead magnet to funnel to product launch workflow for digital products"}},
+ {"@type":"ListItem","position":23,"item":{"@type":"SoftwareApplication","name":"feature-research","applicationCategory":"AISkill","description":"Research existing architecture before implementing a complex feature"}},
+ {"@type":"ListItem","position":24,"item":{"@type":"SoftwareApplication","name":"skill-finder","applicationCategory":"AISkill","description":"Skill discovery, evaluation, and installation meta-skill with security vetting"}},
+ {"@type":"ListItem","position":25,"item":{"@type":"SoftwareApplication","name":"persistent-memory","applicationCategory":"AISkill","description":"Structured memory system for agent context continuity"}},
+ {"@type":"ListItem","position":26,"item":{"@type":"SoftwareApplication","name":"system-prompt-sync","applicationCategory":"AISkill","description":"Auto-sync AGENTS.md across all git repos on version tags"}},
+ {"@type":"ListItem","position":27,"item":{"@type":"SoftwareApplication","name":"feedback-loop","applicationCategory":"AISkill","description":"Iterative improvement cycles from metrics to research"}},
+ {"@type":"ListItem","position":28,"item":{"@type":"SoftwareApplication","name":"context-compressor","applicationCategory":"AISkill","description":"Compress long contexts preserving critical information"}},
+ {"@type":"ListItem","position":29,"item":{"@type":"SoftwareApplication","name":"agent-roles","applicationCategory":"AISkill","description":"Unified multi-agent role system — Builder, Coder, Council, Orchestrator, Plan, Researcher, Reviewer, Scribe"}},
+ {"@type":"ListItem","position":30,"item":{"@type":"SoftwareApplication","name":"sample-hello-skill","applicationCategory":"AISkill","description":"Hello-world demo skill for testing skill activation and validation"}},
+ {"@type":"ListItem","position":31,"item":{"@type":"SoftwareApplication","name":"web-reader","applicationCategory":"AISkill","description":"Web page extraction with site crawling and spidering capabilities"}},
+ {"@type":"ListItem","position":32,"item":{"@type":"SoftwareApplication","name":"audit-analyzer","applicationCategory":"AISkill","description":"Detect and prioritize audit issues — performance, accessibility, monitoring"}},
+ {"@type":"ListItem","position":33,"item":{"@type":"SoftwareApplication","name":"web-design-guidelines","applicationCategory":"AISkill","description":"Quick self-audit checklist for design consistency — typography, color, spacing, accessibility"}},
+ {"@type":"ListItem","position":34,"item":{"@type":"SoftwareApplication","name":"code-research","applicationCategory":"AISkill","description":"Research open-source repositories to understand how something is built"}},
+ {"@type":"ListItem","position":35,"item":{"@type":"SoftwareApplication","name":"explore","applicationCategory":"AISkill","description":"Search a codebase using codebase_search tool — saves time and tokens over grep"}},
+ {"@type":"ListItem","position":36,"item":{"@type":"SoftwareApplication","name":"photography-ai","applicationCategory":"AISkill","description":"Professional visual engineering framework with batch processing, prompt engineering, cinematic sequences"}},
+ {"@type":"ListItem","position":37,"item":{"@type":"SoftwareApplication","name":"output-formatter","applicationCategory":"AISkill","description":"Strict formatting rules for all output types — JSON, tables, markdown"}},
+ {"@type":"ListItem","position":38,"item":{"@type":"SoftwareApplication","name":"pictoflux-ai","applicationCategory":"AISkill","description":"AI-powered image generation and visual editing via MCP protocol — create, transform, and composite images through standardized tool calls"}},
+ {"@type":"ListItem","position":39,"item":{"@type":"SoftwareApplication","name":"mcp-stack-curator","applicationCategory":"AISkill","description":"Recommends which 4 MCP servers to use together — solves the unsolved problem of server combination synergy with conflict detection"}},
+ {"@type":"ListItem","position":40,"item":{"@type":"SoftwareApplication","name":"mcp-registry","applicationCategory":"AISkill","description":"Searchable directory of 105+ free MCP servers across 14 categories with deduplication and compatibility scoring"}},
+ {"@type":"ListItem","position":41,"item":{"@type":"SoftwareApplication","name":"mcp-security-scanner","applicationCategory":"AISkill","description":"Audit MCP server configurations for security vulnerabilities, permission scopes, and trust verification"}},
+ {"@type":"ListItem","position":42,"item":{"@type":"SoftwareApplication","name":"agent-rabbit","applicationCategory":"AISkill","description":"Multiply ideas — rapid ideation, brainstorming, and divergent thinking. Generates many options quickly, then clusters and prioritizes"}},
+ {"@type":"ListItem","position":43,"item":{"@type":"SoftwareApplication","name":"agent-owl","applicationCategory":"AISkill","description":"Deep analysis — systematic decomposition, evidence evaluation, and convergent thinking. Finds what others miss"}},
+ {"@type":"ListItem","position":44,"item":{"@type":"SoftwareApplication","name":"agent-ant","applicationCategory":"AISkill","description":"Break into steps — task decomposition, work breakdown structures, and sequential execution planning. Ships incrementally"}},
+ {"@type":"ListItem","position":45,"item":{"@type":"SoftwareApplication","name":"agent-eagle","applicationCategory":"AISkill","description":"Big picture — strategic vision, cross-domain patterns, and second-order thinking. Sees the forest AND the trees"}},
+ {"@type":"ListItem","position":46,"item":{"@type":"SoftwareApplication","name":"agent-dolphin","applicationCategory":"AISkill","description":"Creative solutions — lateral thinking, analogical reasoning, and innovative problem-solving. Finds elegant unconventional paths"}},
+ {"@type":"ListItem","position":47,"item":{"@type":"SoftwareApplication","name":"agent-beaver","applicationCategory":"AISkill","description":"Build systems — architecture design, infrastructure planning, and system construction. Builds things that last"}},
+ {"@type":"ListItem","position":48,"item":{"@type":"SoftwareApplication","name":"agent-elephant","applicationCategory":"AISkill","description":"Cross-field connections — knowledge synthesis, interdisciplinary bridging, and pattern transfer. Connects dots across domains"}},
+ {"@type":"ListItem","position":49,"item":{"@type":"SoftwareApplication","name":"tdd-workflow","applicationCategory":"AISkill","description":"Test-driven development workflow — write tests first, watch them fail, write minimal code to pass, refactor with confidence. Red-green-refactor cycles with vertical slice architecture"}},
+ {"@type":"ListItem","position":50,"item":{"@type":"SoftwareApplication","name":"to-prd","applicationCategory":"AISkill","description":"Transform conversation context and codebase understanding into a structured Product Requirements Document — synthesizes what you already know into actionable specifications"}},
+ {"@type":"ListItem","position":51,"item":{"@type":"SoftwareApplication","name":"brainstorming","applicationCategory":"AISkill","description":"Structured brainstorming framework with divergent and convergent phases — generates ideas rapidly, then clusters, prioritizes, and refines them into actionable concepts"}},
+ {"@type":"ListItem","position":52,"item":{"@type":"SoftwareApplication","name":"composition-patterns","applicationCategory":"AISkill","description":"Software composition patterns — dependency injection, strategy pattern, decorator chains, middleware pipelines, and plugin architectures for extensible codebases"}},
+ {"@type":"ListItem","position":53,"item":{"@type":"SoftwareApplication","name":"9router-gateway","applicationCategory":"AISkill","description":"AI routing gateway with RTK compression, tier-based provider fallback, circuit breaker, and real-time dashboard — routes requests through free-tier providers first, paid only on fallback"}},
+ {"@type":"ListItem","position":54,"item":{"@type":"SoftwareApplication","name":"owl-proxy-defense","applicationCategory":"AISkill","description":"Protocol-first proxy defense stack with 5-tier escalation — http/1.1 core, ja3/ws browser on demand — anti-bot resilience with per-provider routing and CI/CD enforcement"}},
+ {"@type":"ListItem","position":55,"item":{"@type":"SoftwareApplication","name":"antigravity-proxy","applicationCategory":"AISkill","description":"MITM proxy bridge for free AI model access — intercepts IDE traffic to provide Claude/Gemini model access via multiple account rotation with staggered token refresh"}},
+ {"@type":"ListItem","position":56,"item":{"@type":"SoftwareApplication","name":"4cli-unified","applicationCategory":"AISkill","description":"Unified meta-CLI wrapper for OpenCode + Claude Code + Codex + Gemini CLI — one command for four agents with 9Router tier routing and unified credential vault"}},
+ {"@type":"ListItem","position":57,"item":{"@type":"SoftwareApplication","name":"triune-proxy-stack","applicationCategory":"AISkill","description":"Maximum redundancy proxy architecture — 9Router + OmniRoute + Orcaflow with token health dashboard, auto-failover, and distributed locking for zero-downtime AI access"}},
+ {"@type":"ListItem","position":58,"item":{"@type":"SoftwareApplication","name":"secret-vault","applicationCategory":"AISkill","description":"Unified credential vault with age encryption — manages API keys, OAuth tokens, and proxy credentials for all AI providers with rotation reminders and breach detection"}},
+ {"@type":"ListItem","position":59,"item":{"@type":"SoftwareApplication","name":"opencode-owl-install-proxy","applicationCategory":"AISkill","description":"OpenCode-optimized Owl proxy installer — automated setup of Owl proxy defense stack for OpenCode CLI with pre-configured tier routing, anti-bot escalation, and credential vaulting"}},
+ {"@type":"ListItem","position":60,"item":{"@type":"SoftwareApplication","name":"openhuman-owl-install-proxy","applicationCategory":"AISkill","description":"OpenHuman-optimized Owl proxy installer — privacy-first, consent-gated tier progression with zero-knowledge encryption and audit trails for human-agent workflows"}},
+ {"@type":"ListItem","position":61,"item":{"@type":"SoftwareApplication","name":"combined-proxy-billing","applicationCategory":"AISkill","description":"Unified billing and cost management for multi-proxy stacks — aggregates usage, cost, and quota data across 9Router, Owl, Antigravity, and Triune proxies with budget alerts and optimization recommendations"}},
+ {"@type":"ListItem","position":62,"item":{"@type":"SoftwareApplication","name":"openrelay-go","applicationCategory":"AISkill","description":"Go-based high-performance open relay proxy — connection pooling, load balancing, health checking, and zero-config auto-discovery for AI provider endpoints. Native binary, no Node.js runtime"}},
+ {"@type":"ListItem","position":63,"item":{"@type":"SoftwareApplication","name":"api-gateway-skill","applicationCategory":"AISkill","description":"API gateway orchestration — design, deploy, and manage API gateways with rate limiting, authentication, request transformation, and observability for AI-powered microservices"}},
+ {"@type":"ListItem","position":64,"item":{"@type":"SoftwareApplication","name":"animation-orchestrator","applicationCategory":"AISkill","description":"Router for all animation requests — decides Motion vs GSAP vs CSS, enforces 5KB budget, prevents wrong-tool selection and bundle bloat. Gates ALL animation work"}},
+ {"@type":"ListItem","position":65,"item":{"@type":"SoftwareApplication","name":"animation-auditor","applicationCategory":"AISkill","description":"Quality gates for animation code — catches missing cleanup (useGSAP, dispose), bundle violations, Tailwind/Motion conflicts, missing reduced-motion checks, and SSR errors before commit"}},
+ {"@type":"ListItem","position":66,"item":{"@type":"SoftwareApplication","name":"motion-animator","applicationCategory":"AISkill","description":"React-native UI animations with Motion (Framer Motion v12+) — hover, scroll reveal, layout, exit, gestures, springs. Bundle-aware: useAnimate mini (2.3KB) or LazyMotion + m (4.6KB) for budget compliance"}},
+ {"@type":"ListItem","position":67,"item":{"@type":"SoftwareApplication","name":"gsap-animator","applicationCategory":"AISkill","description":"Complex timeline/scroll/SVG animations with GSAP — ScrollTrigger pin, SVG morph, text split effects, physics-based motion. Full GSAP ecosystem: ScrollTrigger, Flip, Draggable, SplitText, DrawSVG"}},
+ {"@type":"ListItem","position":68,"item":{"@type":"SoftwareApplication","name":"threejs-orchestrator","applicationCategory":"AISkill","description":"Gates ALL 3D work — routes to r3f-react for UI, vanilla Three.js for compute, Babylon.js for games. Prevents vanilla Three.js in React anti-pattern. Enforces lazy-load, ssr:false, transpilePackages"}},
+ {"@type":"ListItem","position":69,"item":{"@type":"SoftwareApplication","name":"skill-architect","applicationCategory":"AISkill","description":"Create, design, refactor, and optimize AI agent skills (SKILL.md files) following the Agent Skills open standard — progressive disclosure, trigger-optimized descriptions, validation, packaging for distribution"}},
+ {"@type":"ListItem","position":70,"item":{"@type":"SoftwareApplication","name":"modelscope-mcp-hub","applicationCategory":"AISkill","description":"Access ModelScope (魔搭) MCP Plaza — 2300+ free MCP servers with hosted deployment. Chinese AI ecosystem: image generation, document parsing, maps, payments, NL2SQL. Free cloud hosting included"}},
+ {"@type":"ListItem","position":71,"item":{"@type":"SoftwareApplication","name":"context7-docs","applicationCategory":"AISkill","description":"Fetch up-to-date, version-specific documentation and code examples into LLM prompts — eliminates stale or hallucinated API references for any library. Always-current docs"}},
+ {"@type":"ListItem","position":72,"item":{"@type":"SoftwareApplication","name":"agent-auditor","applicationCategory":"AISkill","description":"7-agent MASTER pipeline auditor — validates animation code, checks cleanup, accessibility, and performance before commit. Runs quality gates on every animation PR"}},
+ {"@type":"ListItem","position":73,"item":{"@type":"SoftwareApplication","name":"agent-decision","applicationCategory":"AISkill","description":"7-agent MASTER pipeline decision engine — routes tasks to the right specialist agent based on complexity, domain, and available context"}},
+ {"@type":"ListItem","position":74,"item":{"@type":"SoftwareApplication","name":"agent-maintenance","applicationCategory":"AISkill","description":"7-agent MASTER pipeline maintenance — keeps skills, dependencies, and documentation current and consistent across versions"}},
+ {"@type":"ListItem","position":75,"item":{"@type":"SoftwareApplication","name":"agent-master","applicationCategory":"AISkill","description":"7-agent MASTER pipeline orchestrator — coordinates all 7 agents in sequence: Decision, Simulator, Implementation, Auditor, Profiler, Optimizer, Maintenance"}},
+ {"@type":"ListItem","position":76,"item":{"@type":"SoftwareApplication","name":"agent-optimizer","applicationCategory":"AISkill","description":"7-agent MASTER pipeline optimizer — reduces bundle size, eliminates dead code, and improves runtime performance of animation implementations"}},
+ {"@type":"ListItem","position":77,"item":{"@type":"SoftwareApplication","name":"agent-profiler","applicationCategory":"AISkill","description":"7-agent MASTER pipeline profiler — measures FPS, memory, and layout thrash to identify animation bottlenecks before they reach production"}},
+ {"@type":"ListItem","position":78,"item":{"@type":"SoftwareApplication","name":"agent-simulator","applicationCategory":"AISkill","description":"7-agent MASTER pipeline simulator — dry-runs implementations to catch issues before real execution. Validates edge cases and failure modes"}},
+ {"@type":"ListItem","position":79,"item":{"@type":"SoftwareApplication","name":"animation-hybrid-architect","applicationCategory":"AISkill","description":"Meta-skill for combining Motion v12 + GSAP v3.13+ with strict boundaries — Motion owns UI layer (modals, gestures, layout), GSAP owns content layer (scroll, text, SVG). Never animate same element with both"}},
+ {"@type":"ListItem","position":80,"item":{"@type":"SoftwareApplication","name":"gsap-animation-engineer","applicationCategory":"AISkill","description":"GSAP v3.13+ cinematic scroll/text/SVG animation engineer — ScrollTrigger pin, SplitText, SVG morph, Flip, physics-based motion with React useGSAP hook. All plugins free since April 2025"}},
+ {"@type":"ListItem","position":81,"item":{"@type":"SoftwareApplication","name":"motion-animation-engineer","applicationCategory":"AISkill","description":"Motion v12 (ex-Framer Motion) declarative UI animation engineer for React/Vue — hover, scroll reveal, layout, exit, gestures, springs with bundle-aware loading (2.3KB-34KB)"}}
+ ,{"@type":"ListItem","position":82,"item":{"@type":"SoftwareApplication","name":"design-nested","applicationCategory":"AISkill","description":"Meta-design intelligence layer — orchestrates all design skills into a unified optimization tree with Supanova premium aesthetic suite from uxjoseph"}}
+ ,{"@type":"ListItem","position":83,"item":{"@type":"SoftwareApplication","name":"supanova-premium-aesthetic","applicationCategory":"AISkill","description":"Premium Korean-agency landing pages — $150k+ aesthetic with cinematic spatial rhythm, obsessive micro-interactions, flawless typography and Variance Mandate"}}
+ ,{"@type":"ListItem","position":84,"item":{"@type":"SoftwareApplication","name":"supanova-design-engine","applicationCategory":"AISkill","description":"Active baseline aesthetic configuration engine — tunable parameters: DESIGN_VARIANCE:8, MOTION_INTENSITY:6, VISUAL_DENSITY:3, outputs standalone HTML"}}
+ ,{"@type":"ListItem","position":85,"item":{"@type":"SoftwareApplication","name":"supanova-redesign-engine","applicationCategory":"AISkill","description":"Redesigns existing landing pages via Scan → Diagnose → Fix sequence — audits generic patterns and applies targeted upgrades"}}
+ ,{"@type":"ListItem","position":86,"item":{"@type":"SoftwareApplication","name":"supanova-full-output","applicationCategory":"AISkill","description":"Production-critical output enforcement — bans placeholder patterns and ensures every section, animation, and responsive breakpoint is fully delivered"}}
+ ,{"@type":"ListItem","position":87,"item":{"@type":"SoftwareApplication","name":"landing-page-generator","applicationCategory":"AISkill","description":"High-conversion product/service landing page generator with Korean-optimized conversion patterns and mobile-first responsive design"}}
+ ]
+}
+
+ Skip to Skills Grid 
+
+ DEFAULT THEME
+
+ ◆ 87 SKILLS 
+ ★ 11 CATEGORIES 
+ ♦ DESIGN TREE 
+
+ SEARCH-FIRST 
+
+ Find Your Skill 
+
+ 87 AI agent skills across 11 categories. Search by name, tag, or capability. Explore the design optimization tree.
+
+ 🎨 Design 
+ 🎬 Animation 
+ ✨ Supanova 
+ 🛡️ Proxy 
+ 🔌 MCP 
+ 🤖 Agent 
+
+ 🌳 DESIGN OPTIMIZATION TREE
+
+ DESIGN OPTIMIZATION TREE 
+ How design-nested routes your request through the optimal skill chain 
+
+ 🌳 
+ design-nested 
+ Meta-design orchestration layer 
+
+ TIER 1 — INTELLIGENCE 
+
+ 🎨 
+ ui-ux-pro-max-v7 
+ Core design system 
+
+ ⚙️ 
+ supanova-design-engine 
+ Tunable aesthetic engine 
+
+ 🎯 
+ anthropic-frontend-design 
+ AI-native aesthetics 
+
+ TIER 2 — GENERATION 
+
+ ✨ 
+ supanova-premium-aesthetic 
+ $150k+ Korean-agency pages 
+
+ 🖥️ 
+ frontend-design 
+ shadcn + Tailwind + React 
+
+ 📋 
+ supanova-full-output 
+ Zero-placeholder output 
+
+ 🚀 
+ landing-page-generator 
+ High-conversion pages 
+
+ TIER 3 — REFINEMENT 
+
+ 🔄 
+ supanova-redesign-engine 
+ Scan → Diagnose → Fix 
+
+ 🛡️ 
+ animation-auditor 
+ Quality gates 
+
+ ♿ 
+ vercel-web-design-guidelines 
+ Accessibility-first UX 
+
+ TIER 4 — MOTION 
+
+ 🎲 
+ animation-orchestrator 
+ Animation router 
+
+ 🔗 
+ animation-hybrid-architect 
+ Motion + GSAP boundaries 
+
+ 🎵 
+ gsap-animation-engineer 
+ Cinematic GSAP 
+
+ 💫 
+ motion-animation-engineer 
+ Motion v12 UI 
+
+ Powered by uxjoseph/supanova-design-skill — 461 installs, 322 ★ on skills.sh 
+
+ 87 Skills ◆ 11 Categories ◆ Search-First Layout ◆ Design Optimization Tree ◆ Supanova Suite by uxjoseph ◆ Animation Pipeline ◆ 145 MCP Servers ◆ 7-Agent Pipeline ◆ Dark Mode ◆ Theme Marketplace
+
+ 0 
+ Skills 
+
+ 0 
+ Categories 
+
+ 0 
+ MCP Servers 
+
+ 0 
+ Agents 
+
+ A → Z 
+ CATEGORY 
+ RECENT 
+
+ ☀️ 
+
+ DEFAULT 
+ MIDNIGHT 
+ SUNSET 
+ FOREST 
+ OCEAN 
+ CYBERPUNK 
+
+ SHARE 
+
+ 87 ACTIVE SKILLS 
+ 11 categories // design // supanova // development // reasoning // content // strategy // system // data // creative // mcp // agents // infrastructure Click to expand · Double-click for full preview · Search from the top bar 
+
+ 7 AGENT MODES 
+ Your AI's personality — switch modes to match the task 
+
+ Rabbit → AI Research Lab brave-search, fetch, memory, sqlite, 9router-gateway 
+ 🐇 
+ Rabbit 
+ Multiply Ideas 
+
+ Owl → 9Router + OWL Defense 9router, owl-proxy, audit-analyzer 
+ 🦉 
+ Owl 
+ Deep Analysis 
+
+ Ant → Full-Stack Web Studio filesystem, github, vercel, postgres 
+ 🐜 
+ Ant 
+ Break Into Steps 
+
+ Eagle → Triune Proxy Stack 9router, omniroute, orcaflow 
+ 🦅 
+ Eagle 
+ Big Picture 
+
+ Dolphin → Creative Studio filesystem, fetch, google-drive, slack 
+ 🐬 
+ Dolphin 
+ Creative Solutions 
+
+ Beaver → Data Pipeline Studio postgres, sqlite, fetch, filesystem 
+ 🦫 
+ Beaver 
+ Build Systems 
+
+ Elephant → 4-CLI Unified opencode, claude, codex, gemini 
+ 🐘 
+ Elephant 
+ Cross-Field Connections 
+
+ INFRASTRUCTURE STACK 
+ The pipeline that makes 87 skills work — routing, proxy, credentials, billing, health monitoring 
+
+ YOUR STACK RECOMMENDER 
+ Select 3-5 skills you use — get the optimal MCP stack + agent mode combination 
+
+ 1. SELECT YOUR SKILLS (3-5) 
+
+ 2. YOUR SELECTION 
+
+ GET RECOMMENDATION 
+
+ MCP STACK CURATOR 
+ Pre-built MCP server combinations with synergy scoring // Click to expand details 
+
+ BUILD YOUR OWN STACK 
+
+ -- SELECT SERVER -- 
+
+ + ADD 
+
+ Select up to 4 MCP servers to calculate synergy score.
+
+ ENDPOINTS: ?format=json raw JSON  |  ?format=manifest plugin.xml  |  ?skill=gsap-animations auto-filter  |  ?category=Development category filter  |  ?embed=true iframe-ready  |  ?palette=FF2E63 live theme  |  ?theme=cyberpunk named theme
+ VERSION: v18.0.0  |  UPDATED: 2025-06-05  |  PWA Installable  |  Offline Support  |  Dark Mode  |  Theme Marketplace  |  Stack Recommender  |  Infrastructure Stack  |  WCAG AA contrast  |  JSON-LD in <head>  |  87 skills  |  11 categories  |  Preview Modal  |  Skip Navigation  |  GitHub Pages + Vercel
+
+ Built with ui-ux-pro-max-v7 + gsap-animations + anthropic-frontend-design + frontend-design // 87 skills // 11 categories // PWA // Dark Mode // Theme Marketplace // Stack Recommender // Infrastructure Stack // Preview Modal // v18.0.0
+
+ ×
