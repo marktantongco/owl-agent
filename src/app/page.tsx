@@ -50,6 +50,7 @@ import {
   Code2,
   GitBranch,
   Box,
+  Container,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,7 @@ interface SkillCard {
 const NAV_ITEMS = [
   { id: "hero", label: "Home", icon: Box },
   { id: "download", label: "Download", icon: Download },
+  { id: "docker", label: "Docker", icon: Container },
   { id: "architecture", label: "Architecture", icon: Layers },
   { id: "walkthrough", label: "Walkthrough", icon: Rocket },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
@@ -1740,6 +1742,302 @@ function KnowledgeSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   DOCKER DEPLOYMENT
+   ═══════════════════════════════════════════════════════════ */
+
+const DOCKER_SERVICES = [
+  {
+    name: "forward-proxy",
+    port: 60000,
+    desc: "HTTP/HTTPS forward proxy with domain bypass & upstream chaining",
+    icon: Network,
+    color: "#00FF88",
+    command: "docker compose up forward-proxy -d",
+  },
+  {
+    name: "mcp-server",
+    port: -1,
+    desc: "MCP Resilient HTTP server — stdio transport for AI agents",
+    icon: Cpu,
+    color: "#FFB800",
+    command: "docker compose exec mcp-server python3 /app/scripts/owl_resilient_mcp.py",
+  },
+  {
+    name: "owl-agent",
+    port: 60000,
+    desc: "All-in-one: proxy + MCP in single container (profile: all-in-one)",
+    icon: Container,
+    color: "#BFFF00",
+    command: "docker compose --profile all-in-one up owl-agent -d",
+  },
+];
+
+const DOCKER_COMMANDS = [
+  { label: "Pull & Run (All-in-One)", cmd: "git clone <repo> && cd docker\ndocker compose --profile all-in-one up -d", color: "#BFFF00" },
+  { label: "Run Forward Proxy Only", cmd: "docker compose up forward-proxy -d", color: "#00FF88" },
+  { label: "Run with Upstream Proxy", cmd: 'UPSTREAM_PROXY=http://user:pass@host:7890 docker compose up -d', color: "#00F0FF" },
+  { label: "Enable Proxy Enrichment", cmd: 'OWL_ENRICH_ENABLED=1 docker compose up -d', color: "#A855F7" },
+  { label: "Check Service Health", cmd: "docker compose exec owl-agent curl -sf http://localhost:60000/health", color: "#FF3E9A" },
+  { label: "Run Validation Suite", cmd: "docker compose exec owl-agent python3 /app/scripts/validate_owl.py", color: "#FFB800" },
+  { label: "View Logs", cmd: "docker compose logs -f forward-proxy", color: "#00FF88" },
+  { label: "Stop All Services", cmd: "docker compose down", color: "#6B6B85" },
+];
+
+function DockerSection() {
+  const [activeTab, setActiveTab] = useState<"quickstart" | "services" | "compose">("quickstart");
+
+  return (
+    <AnimatedSection id="docker" className="py-20 sm:py-28 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div variants={fadeUp} className="text-center mb-10 sm:mb-14">
+          <SectionBadge color="#FF3E9A">
+            <Container className="w-3 h-3 mr-1.5" />
+            Docker Deployment
+          </SectionBadge>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight">
+            Deploy with <span className="text-gradient-pink">Docker</span>
+          </h2>
+          <p className="mt-4 text-muted-foreground max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
+            Containerized, portable, zero-dependency deployment. One command to spin up the entire stack.
+          </p>
+        </motion.div>
+
+        {/* Tab switcher */}
+        <motion.div variants={fadeUpFast} className="flex items-center justify-center gap-2 mb-8">
+          {[
+            { id: "quickstart" as const, label: "Quickstart", icon: Rocket },
+            { id: "services" as const, label: "Services", icon: Layers },
+            { id: "compose" as const, label: "Commands", icon: Terminal },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-all focus-ring ${
+                activeTab === tab.id
+                  ? "bg-owl-pink/15 text-owl-pink border border-owl-pink/25"
+                  : "bg-white/[0.03] text-muted-foreground border border-owl-border/40 hover:bg-white/[0.06] hover:text-foreground"
+              }`}
+            >
+              <tab.icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Quickstart Tab */}
+        <AnimatePresence mode="wait">
+          {activeTab === "quickstart" && (
+            <motion.div
+              key="quickstart"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Docker run command */}
+              <div className="max-w-3xl mx-auto space-y-5">
+                <motion.div variants={scaleIn}>
+                  <div className="glass glow-pink rounded-xl p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Container className="w-5 h-5 text-owl-pink" />
+                      <h3 className="font-bold text-base">One-Command Deploy</h3>
+                    </div>
+                    <TerminalBlock
+                      code={`# Clone & deploy the full stack
+git clone https://github.com/owl-agent/owl-unified.git && cd owl-unified/docker
+
+# Option A: All-in-one container
+docker compose --profile all-in-one up -d
+
+# Option B: Separate services (recommended for production)
+docker compose up -d`}
+                      title="deploy.sh"
+                    />
+                  </div>
+                </motion.div>
+
+                {/* 3-step quick start */}
+                <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { step: 1, title: "Clone", desc: "Clone the repo and navigate to the docker/ directory", icon: GitBranch, color: "#BFFF00" },
+                    { step: 2, title: "Configure", desc: "Edit .env or pass env vars for upstream proxy, enrichment, etc.", icon: Settings, color: "#00F0FF" },
+                    { step: 3, title: "Deploy", desc: "Run docker compose up -d and validate with the health endpoint", icon: Rocket, color: "#A855F7" },
+                  ].map((s) => (
+                    <motion.div key={s.step} variants={scaleIn}>
+                      <div className="glass rounded-xl p-5 text-center">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+                          style={{ backgroundColor: `${s.color}12` }}
+                        >
+                          <s.icon className="w-5 h-5" style={{ color: s.color }} />
+                        </div>
+                        <div className="text-[10px] font-mono font-bold mb-1" style={{ color: s.color }}>
+                          STEP {s.step}
+                        </div>
+                        <h4 className="font-bold text-sm mb-1">{s.title}</h4>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">{s.desc}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+
+                {/* Environment variables */}
+                <motion.div variants={fadeUp}>
+                  <div className="glass rounded-xl p-5">
+                    <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+                      <Settings className="w-4 h-4 text-owl-cyan" />
+                      Environment Variables
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { key: "FORWARD_PROXY_PORT", default: "60000", desc: "Forward proxy listen port" },
+                        { key: "UPSTREAM_PROXY", default: "", desc: "Upstream proxy URL (user:pass@host:port)" },
+                        { key: "BYPASS_DOMAINS", default: "nvidia.com,...", desc: "Direct-access domain suffixes" },
+                        { key: "OWL_ENRICH_ENABLED", default: "", desc: "Enable proxy auto-discovery" },
+                        { key: "CACHE_TTL", default: "300", desc: "Response cache TTL (seconds)" },
+                        { key: "CIRCUIT_BREAKER_THRESHOLD", default: "3", desc: "Failures before circuit opens" },
+                        { key: "LOG_LEVEL", default: "INFO", desc: "Logging verbosity" },
+                        { key: "PROXY_CONFIG_DIR", default: "./config", desc: "Config directory mount" },
+                      ].map((env) => (
+                        <div key={env.key} className="p-2.5 rounded-lg bg-white/[0.02] border border-owl-border/30">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <code className="font-mono text-owl-lime text-[11px] font-bold">{env.key}</code>
+                            <span className="text-[10px] text-muted-foreground/60 font-mono">= {env.default || '""'}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed pl-0">{env.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Services Tab */}
+          {activeTab === "services" && (
+            <motion.div
+              key="services"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                {DOCKER_SERVICES.map((svc) => (
+                  <motion.div key={svc.name} variants={scaleIn}>
+                    <div className="glass rounded-xl p-5 h-full group hover:scale-[1.02] transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                          style={{ backgroundColor: `${svc.color}12` }}
+                        >
+                          <svc.icon className="w-5 h-5" style={{ color: svc.color }} />
+                        </div>
+                        {svc.port > 0 && (
+                          <span className="font-mono font-black text-lg" style={{ color: svc.color }}>
+                            :{svc.port}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-sm mb-1.5">{svc.name}</h3>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-4">{svc.desc}</p>
+                      <TerminalBlock code={svc.command} title={svc.name} />
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Architecture diagram */}
+              <motion.div variants={fadeUp} className="mt-8 max-w-4xl mx-auto">
+                <div className="glass rounded-xl p-5">
+                  <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
+                    <Activity className="w-4 h-4 text-owl-green" />
+                    Docker Network Topology
+                  </h3>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm font-mono">
+                    {[
+                      { label: "Host", color: "#F0F0F5" },
+                      { label: "→", color: "#6B6B85" },
+                      { label: ":60000", color: "#00FF88" },
+                      { label: "→", color: "#6B6B85" },
+                      { label: "forward-proxy", color: "#00FF88" },
+                      { label: "→", color: "#6B6B85" },
+                      { label: "Upstream", color: "#00F0FF" },
+                      { label: "→", color: "#6B6B85" },
+                      { label: "Internet", color: "#FF3E9A" },
+                    ].map((item, i) => (
+                      <span key={i} className="font-medium" style={{ color: item.color }}>
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-center mt-2 text-[10px] text-muted-foreground font-mono">
+                    <span>mcp-server ── stdio ──► AI Agent (Copilot / OpenCode / Cursor)</span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {/* Commands Tab */}
+          {activeTab === "compose" && (
+            <motion.div
+              key="compose"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.25 }}
+            >
+              <motion.div variants={stagger} className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-4xl mx-auto">
+                {DOCKER_COMMANDS.map((cmd) => (
+                  <motion.div key={cmd.label} variants={fadeUp}>
+                    <div className="glass rounded-xl p-4 group hover:scale-[1.01] transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: cmd.color }}
+                        />
+                        <span className="font-bold text-[12px]">{cmd.label}</span>
+                      </div>
+                      <TerminalBlock code={cmd.cmd} title={cmd.label} />
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* .env file example */}
+              <motion.div variants={fadeUp} className="mt-6 max-w-4xl mx-auto">
+                <div className="glass rounded-xl p-5">
+                  <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
+                    <FileCode className="w-4 h-4 text-owl-amber" />
+                    .env Example
+                  </h3>
+                  <TerminalBlock
+                    code={`# OWL-AGENT Docker Environment
+FORWARD_PROXY_PORT=60000
+UPSTREAM_PROXY=http://user:pass@127.0.0.1:7890
+BYPASS_DOMAINS=nvidia.com,opencode.ai,amazonaws.com,kiro.dev
+OWL_ENRICH_ENABLED=1
+CACHE_TTL=300
+CIRCUIT_BREAKER_THRESHOLD=3
+CIRCUIT_BREAKER_RECOVERY=60
+LOG_LEVEL=INFO
+PROXY_CONFIG_DIR=./config`}
+                    title=".env"
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </AnimatedSection>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    FOOTER
    ═══════════════════════════════════════════════════════════ */
 
@@ -1799,6 +2097,7 @@ export default function OWLAgentPage() {
       <main className="flex-1">
         <HeroSection />
         <DownloadSection />
+        <DockerSection />
         <ArchitectureSection />
         <WalkthroughSection />
         <KnowledgeSection />

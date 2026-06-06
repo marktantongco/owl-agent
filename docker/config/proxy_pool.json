@@ -1,0 +1,19 @@
+{
+  "proxies": [
+    {
+      "url": "http://127.0.0.1:7890",
+      "weight": 10,
+      "tags": ["upstream", "mihomo"]
+    }
+  ],
+  "github_sources": [
+    {
+      "url": "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+      "format": "plain",
+      "refresh_interval": 3600
+    }
+  ],
+  "auth": {
+    "injection_rules": []
+  }
+}

@@ -1,0 +1,104 @@
+# ═══════════════════════════════════════════════════════════
+# OWL-AGENT Unified Synergy Gateway — Docker Compose
+# Usage: docker compose up -d
+# ═══════════════════════════════════════════════════════════
+
+services:
+  # ── Forward Proxy ──────────────────────────────────────
+  forward-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: proxy
+    container_name: owl-forward-proxy
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_PROXY_PORT:-60000}:60000"
+    environment:
+      - FORWARD_PROXY_PORT=60000
+      - UPSTREAM_PROXY=${UPSTREAM_PROXY:-}
+      - BYPASS_DOMAINS=${BYPASS_DOMAINS:-nvidia.com,opencode.ai,amazonaws.com,kiro.dev}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - proxy-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:60000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - owl-net
+
+  # ── MCP Resilient HTTP Server ──────────────────────────
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: mcp
+    container_name: owl-mcp-server
+    restart: unless-stopped
+    environment:
+      - PROXY_POOL_CONFIG=/app/config/proxy_pool.json
+      - PROXY_SOURCES_CONFIG=/app/config/proxy_sources.json
+      - OWL_ENRICH_ENABLED=${OWL_ENRICH_ENABLED:-}
+      - CACHE_TTL=${CACHE_TTL:-300}
+      - CIRCUIT_BREAKER_THRESHOLD=${CIRCUIT_BREAKER_THRESHOLD:-3}
+      - CIRCUIT_BREAKER_RECOVERY=${CIRCUIT_BREAKER_RECOVERY:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ${PROXY_CONFIG_DIR:-./config}:/app/config:ro
+      - mcp-logs:/app/logs
+    depends_on:
+      forward-proxy:
+        condition: service_healthy
+    networks:
+      - owl-net
+    # MCP uses stdio — connect via: docker compose exec mcp-server python3 /app/scripts/owl_resilient_mcp.py
+
+  # ── All-in-One (proxy + MCP in single container) ──────
+  owl-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: all
+    container_name: owl-agent
+    restart: unless-stopped
+    profiles:
+      - all-in-one
+    ports:
+      - "${FORWARD_PROXY_PORT:-60000}:60000"
+    environment:
+      - FORWARD_PROXY_PORT=60000
+      - UPSTREAM_PROXY=${UPSTREAM_PROXY:-}
+      - BYPASS_DOMAINS=${BYPASS_DOMAINS:-nvidia.com,opencode.ai,amazonaws.com,kiro.dev}
+      - PROXY_POOL_CONFIG=/app/config/proxy_pool.json
+      - PROXY_SOURCES_CONFIG=/app/config/proxy_sources.json
+      - OWL_ENRICH_ENABLED=${OWL_ENRICH_ENABLED:-}
+      - CACHE_TTL=${CACHE_TTL:-300}
+      - CIRCUIT_BREAKER_THRESHOLD=${CIRCUIT_BREAKER_THRESHOLD:-3}
+      - CIRCUIT_BREAKER_RECOVERY=${CIRCUIT_BREAKER_RECOVERY:-60}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ${PROXY_CONFIG_DIR:-./config}:/app/config:ro
+      - owl-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:60000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - owl-net
+
+volumes:
+  proxy-logs:
+    driver: local
+  mcp-logs:
+    driver: local
+  owl-logs:
+    driver: local
+
+networks:
+  owl-net:
+    driver: bridge

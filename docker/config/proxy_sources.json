@@ -1,0 +1,30 @@
+{
+  "sources": [
+    {
+      "name": "TheSpeedX HTTP Proxies",
+      "url": "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+      "format": "plain",
+      "refresh_interval_seconds": 3600,
+      "enabled": true
+    },
+    {
+      "name": "clarketm Proxy List",
+      "url": "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+      "format": "plain",
+      "refresh_interval_seconds": 7200,
+      "enabled": true
+    },
+    {
+      "name": "ShiftyTR Proxy List",
+      "url": "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
+      "format": "plain",
+      "refresh_interval_seconds": 3600,
+      "enabled": false
+    }
+  ],
+  "validation": {
+    "timeout_seconds": 5,
+    "test_url": "https://httpbin.org/ip",
+    "max_concurrent": 10
+  }
+}
