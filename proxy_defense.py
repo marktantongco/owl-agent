@@ -85,6 +85,7 @@ except ImportError:
 try:
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
+    from sklearn.model_selection import cross_val_score
     import numpy as np
     SKLEARN_AVAILABLE = True
 except ImportError:
@@ -128,6 +129,7 @@ ADAPTIVE_MAX_RATE = 5.0
 AB_MIN_SAMPLE_SIZE = 100
 ML_MIN_SAMPLES = 20
 ML_MAX_SAMPLES = 1000
+ML_STALENESS_THRESHOLD = 0.6  # Minimum CV score to consider model valid
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger("owl-agent.proxy")
@@ -743,7 +745,13 @@ class ABTestManager:
 
 # ─── ML Predictor (v4.3) ──────────────────────────────────
 class MLPredictor:
-    """Online ML predictor for proxy success using logistic regression."""
+    """Online ML predictor for proxy success using logistic regression.
+
+    On startup, validates any persisted model's CV score against
+    ML_STALENESS_THRESHOLD. If the score is below threshold, the model
+    is discarded and will be retrained from scratch after enough live
+    samples are collected.
+    """
     def __init__(self, max_samples: int = 1000):
         self.max_samples = max_samples
         self._features: List[List[float]] = []
@@ -751,10 +759,23 @@ class MLPredictor:
         self._model = None
         self._scaler = None
         self._is_trained_flag = False
+        self._cv_score: float = 0.0
+        self._samples_since_train: int = 0
         self._lock = asyncio.Lock()
 
     def is_trained(self) -> bool:
         return self._is_trained_flag
+
+    def get_info(self) -> Dict[str, Any]:
+        """Return model metadata for /stats endpoint."""
+        return {
+            "model_name": "Logistic",
+            "cv_score": round(self._cv_score, 4),
+            "samples": len(self._features),
+            "is_trained": self._is_trained_flag,
+            "staleness_threshold": ML_STALENESS_THRESHOLD,
+            "is_stale": self._cv_score < ML_STALENESS_THRESHOLD and self._is_trained_flag,
+        }
 
     def _extract_features(self, proxy_url: str, latency_ms: float) -> List[float]:
         protocol = proxy_url.split("://")[0] if "://" in proxy_url else "http"
@@ -778,7 +799,12 @@ class MLPredictor:
                 await asyncio.to_thread(self._train_atomic)
 
     def _train_atomic(self):
-        """Train model and atomically swap - must be called from thread."""
+        """Train model, validate with cross-validation, and atomically swap.
+
+        If the CV score falls below ML_STALENESS_THRESHOLD, the model is
+        still installed but flagged as stale so callers know it needs more
+        live data before it becomes reliable.
+        """
         if not SKLEARN_AVAILABLE:
             return
         try:
@@ -786,14 +812,36 @@ class MLPredictor:
             y = np.array(self._labels)
             if len(set(y)) < 2:
                 return
+            # Need at least 2 samples per class for cross-validation
+            min_class_count = min(10, min(np.bincount(y)) if len(y) >= 20 else 2)
+            if min_class_count < 2:
+                logger.debug("Not enough samples per class for CV, skipping validation")
+                cv_score = 0.5
+            else:
+                cv_folds = min(3, min_class_count)
+                scaler_cv = StandardScaler()
+                X_cv = scaler_cv.fit_transform(X)
+                model_cv = LogisticRegression(max_iter=1000, class_weight='balanced')
+                cv_scores = cross_val_score(model_cv, X_cv, y, cv=cv_folds, scoring='accuracy')
+                cv_score = float(cv_scores.mean())
+
+            # Fit final model on full data
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
             model = LogisticRegression(max_iter=1000, class_weight='balanced')
             model.fit(X_scaled, y)
-            # Atomic swap: set both model and scaler together
+
+            # Atomic swap
             self._model = model
             self._scaler = scaler
+            self._cv_score = cv_score
+            self._samples_since_train = 0
             self._is_trained_flag = True
+
+            if cv_score < ML_STALENESS_THRESHOLD:
+                logger.warning(f"ML model trained but CV score {cv_score:.3f} < threshold {ML_STALENESS_THRESHOLD} — model is stale, will improve with more data")
+            else:
+                logger.info(f"ML model trained: CV score {cv_score:.3f}, samples={len(self._features)}")
         except Exception as e:
             logger.warning(f"ML training failed: {e}")
 
