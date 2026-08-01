@@ -17,6 +17,7 @@
 
 import asyncio
 import hashlib
+import inspect
 import json
 import time
 import logging
@@ -659,7 +660,7 @@ class PluginManager:
     async def run_hooks(self, hook_type: str, *args, **kwargs):
         for hook in self._get_all_hooks(hook_type):
             try:
-                if asyncio.iscoroutinefunction(hook):
+                if inspect.iscoroutinefunction(hook):
                     await hook(*args, **kwargs)
                 else:
                     hook(*args, **kwargs)

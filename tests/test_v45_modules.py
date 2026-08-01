@@ -12,6 +12,7 @@ Tests cover:
 import asyncio
 import importlib
 import importlib.util
+import inspect
 import os
 import sys
 import time
@@ -565,9 +566,9 @@ def on_response(response, **kwargs):
         assert "request" in hooks
         assert "response" in hooks
         assert "start" in hooks
-        assert asyncio.iscoroutinefunction(hooks["request"])
-        assert asyncio.iscoroutinefunction(hooks["start"])
-        assert not asyncio.iscoroutinefunction(hooks["response"])
+        assert inspect.iscoroutinefunction(hooks["request"])
+        assert inspect.iscoroutinefunction(hooks["start"])
+        assert not inspect.iscoroutinefunction(hooks["response"])
 
     @pytest.mark.asyncio
     async def test_start_and_stop(self, plugin_dir):
