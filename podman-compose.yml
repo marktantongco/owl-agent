@@ -1,0 +1,53 @@
+# OWL-AGENT v4.2 — Podman Compose Deployment
+# Usage: podman-compose up -d
+# Or:    podman play kube <(podman-compose pod)
+#
+# Services:
+#   owl-agent   — API on :60000, Metrics on :9090
+#   redis       — State sharing (optional)
+
+version: "3.8"
+
+services:
+  redis:
+    image: docker.io/redis:alpine
+    container_name: owl-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  owl-agent:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: owl-agent:4.2
+    container_name: owl-agent
+    restart: unless-stopped
+    ports:
+      - "60000:60000"
+      - "9091:9091"
+    environment:
+      - OWL_USE_REDIS=true
+      - OWL_REDIS_URL=redis://redis:6379
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      - CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: >
+      --host 0.0.0.0
+      --api-port 60000
+      --metrics-port 9090
+      --countries US GB PH
+      --redis
+      --redis-url redis://redis:6379
+
+volumes:
+  redis-data:

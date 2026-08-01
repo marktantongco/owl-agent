@@ -1,0 +1,354 @@
+{
+  "proxies": [
+    {
+      "url": "https://8.211.194.78:443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://177.55.68.68:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://117.216.46.148:1080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://91.247.250.215:4145",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://210.79.141.226:2081",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://62.106.66.174:143",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://194.53.54.201:8090",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://47.90.149.238:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://181.78.73.117:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://62.60.236.186:1080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://110.49.11.50:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://31.57.42.8:6278",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://103.251.223.90:6069",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://138.117.86.152:999",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://103.48.68.82:83",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://65.111.12.19:3129",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://71.19.249.97:8443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://117.251.103.186:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://201.174.175.82:999",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://35.194.228.247:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://123.126.158.50:80",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://212.23.175.80:8443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://116.130.233.22:3129",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://181.143.143.125:999",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://20.44.206.138:80",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://185.200.119.90:8443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://64.225.8.115:9994",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://34.80.202.6:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://64.225.4.85:9997",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://93.77.191.156:8118",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://135.87.39.23:9443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://135.87.39.23:443",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://135.87.39.23:80",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://176.111.37.216:39811",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://176.111.37.5:39811",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://95.211.64.139:8888",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://104.194.148.188:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://81.31.146.81:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://95.211.174.135:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://138.124.51.186:40000",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://160.238.65.4:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://160.238.65.8:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://160.238.65.3:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://2.59.43.253:22222",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://31.76.29.13:8080",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://160.238.65.7:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://178.172.217.166:10775",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://45.153.4.154:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://160.238.65.9:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    },
+    {
+      "url": "https://79.133.57.204:3128",
+      "healthy": true,
+      "last_check": 0.0,
+      "fail_count": 0,
+      "ban_until": 0.0
+    }
+  ]
+}

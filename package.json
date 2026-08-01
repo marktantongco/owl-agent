@@ -1,0 +1,50 @@
+{
+  "name": "owl-agent",
+  "version": "4.2.0",
+  "description": "Self-optimising HTTP scraping engine with 50+ proxy sources, quality scoring, adaptive rate limiting, and Chrome fingerprinting",
+  "main": "proxy_defense.py",
+  "scripts": {
+    "start": "~/.owl-agent/run.sh serve",
+    "test": "~/.owl-agent/run.sh test",
+    "fetch": "~/.owl-agent/run.sh fetch",
+    "stats": "~/.owl-agent/run.sh stats"
+  },
+  "keywords": [
+    "scraping",
+    "proxy",
+    "http",
+    "resilient",
+    "seo",
+    "curl-cffi",
+    "redis",
+    "mcp",
+    "warp"
+  ],
+  "author": "OWL-AGENT Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/owl-agent/owl-agent"
+  },
+  "engines": {
+    "python": ">=3.9"
+  },
+  "dependencies": {
+    "proxybroker2": "^2.0.0",
+    "litproxy": "^0.2.0",
+    "resilient-httpx": "^1.1.0",
+    "circuitbreaker": "^2.0.0",
+    "curl_cffi": "^0.15.0",
+    "httpx": "^0.28.0",
+    "aiohttp": "^3.14.0",
+    "aiofiles": "^25.0.0",
+    "redis": "^8.0.0"
+  },
+  "files": [
+    "proxy_defense.py",
+    "run.sh",
+    "mcp-server.py",
+    "warp-agent.yaml",
+    "commands.json"
+  ]
+}

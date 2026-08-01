@@ -1,0 +1,4 @@
+#!/bin/bash
+source "$HOME/.owl-agent/venv/bin/activate"
+cd "$HOME/.owl-agent"
+python3 owl_agent_v4.py "$@"

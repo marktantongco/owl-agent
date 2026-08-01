@@ -1,0 +1,27 @@
+{
+  "name": "owl-agent",
+  "version": "4.2.0",
+  "description": "Self-optimising proxy HTTP client — fetch any URL through an intelligent proxy pool with auto-scaling, rate limiting, and circuit breakers.",
+  "commands": {
+    "fetch": {
+      "description": "Fetch a URL through the proxy defence stack",
+      "parameters": {
+        "url": {"type": "string", "description": "Target URL to fetch"},
+        "method": {"type": "string", "default": "GET", "description": "HTTP method (GET, POST, etc.)"},
+        "headers": {"type": "object", "description": "Custom HTTP headers as JSON"},
+        "params": {"type": "object", "description": "Query parameters as JSON"},
+        "geo": {"type": "string", "default": "US", "description": "Preferred proxy country code"},
+        "browser": {"type": "boolean", "default": false, "description": "Use headless browser for JS rendering"}
+      },
+      "handler": "~/.owl-agent/venv/bin/python ~/.owl-agent/owl_server.py --host 127.0.0.1 --api-port 60000"
+    },
+    "status": {
+      "description": "Show proxy pool health and stats",
+      "handler": "curl -s http://127.0.0.1:60000/stats | python3 -m json.tool"
+    },
+    "health": {
+      "description": "Quick health check of the OWL-AGENT server",
+      "handler": "curl -s http://127.0.0.1:60000/health | python3 -m json.tool"
+    }
+  }
+}

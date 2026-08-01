@@ -1,0 +1,19 @@
+{
+  "owl-fetch": {
+    "command": "~/.owl-agent/run.sh fetch",
+    "description": "Fetch a URL via OWL-AGENT resilient client",
+    "shortcut": "Cmd+Shift+O"
+  },
+  "owl-stats": {
+    "command": "~/.owl-agent/run.sh stats",
+    "description": "Show OWL-AGENT proxy pool statistics"
+  },
+  "owl-test": {
+    "command": "~/.owl-agent/run.sh test",
+    "description": "Run OWL-AGENT test request"
+  },
+  "owl-serve": {
+    "command": "~/.owl-agent/run.sh serve",
+    "description": "Start OWL-AGENT HTTP API server"
+  }
+}

@@ -1,0 +1,35 @@
+[Unit]
+Description=🦉 OWL-AGENT v4.2 — Self-Optimising Proxy HTTP Client & Metrics Server
+Documentation=https://github.com/your-org/owl-agent
+After=network.target
+Wants=redis.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/.owl-agent
+
+Environment=SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+Environment=CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+Environment=PYTHONWARNINGS=ignore::DeprecationWarning
+Environment=OWL_USE_REDIS=false
+
+ExecStart=/home/ubuntu/.owl-agent/venv/bin/python /home/ubuntu/.owl-agent/owl_server.py \
+    --host 0.0.0.0 \
+    --api-port 60000 \
+    --metrics-port 9091 \
+    --countries US GB PH
+
+Restart=always
+RestartSec=10
+
+# Hardening
+ProtectHome=false
+NoNewPrivileges=true
+PrivateDevices=true
+ProtectSystem=full
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

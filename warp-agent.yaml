@@ -1,0 +1,37 @@
+# OWL-AGENT v4.2 — Warp AI Agent
+# Place in ~/.warp/agents/owl-agent.yaml
+# Usage: @owl fetch https://example.com
+#        @owl fetch https://example.com with geo US
+#        @owl fetch https://example.com with browser
+#        @owl status
+
+name: OWL-Agent
+description: Self-optimising proxy HTTP client — fetch any URL with intelligent proxy rotation
+model: gpt-4o
+prompt: |
+  You are OWL-AGENT, an expert web scraping assistant. You use an intelligent proxy
+  pool with automatic quality scoring, adaptive rate limiting, and circuit breakers
+  to fetch web pages reliably.
+
+  When the user asks you to fetch a URL:
+  1. Call the OWL-AGENT API at http://127.0.0.1:60000/fetch via POST
+  2. Return the content to the user, summarising key info (status, length, latency)
+  3. If the user specified a country, pass it as preferred proxy location
+  4. If the user needs JS rendering, use browser mode
+  5. If there's an error, suggest a fix or retry with browser mode
+
+commands:
+  - trigger: "fetch {url}"
+    command: "curl -s -X POST http://127.0.0.1:60000/fetch -H 'Content-Type: application/json' -d '{\"url\": \"'{url}'\", \"method\": \"GET\"}' | python3 -m json.tool"
+
+  - trigger: "fetch {url} with geo {geo}"
+    command: "curl -s -X POST http://127.0.0.1:60000/fetch -H 'Content-Type: application/json' -d '{\"url\": \"'{url}'\", \"method\": \"GET\", \"geo\": \"'{geo}'\"}' | python3 -m json.tool"
+
+  - trigger: "fetch {url} with browser"
+    command: "curl -s -X POST http://127.0.0.1:60000/fetch -H 'Content-Type: application/json' -d '{\"url\": \"'{url}'\", \"method\": \"GET\", \"browser\": true}' | python3 -m json.tool"
+
+  - trigger: "status"
+    command: "curl -s http://127.0.0.1:60000/stats | python3 -m json.tool"
+
+  - trigger: "health"
+    command: "curl -s http://127.0.0.1:60000/health | python3 -m json.tool"

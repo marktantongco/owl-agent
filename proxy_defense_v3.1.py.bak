@@ -1,0 +1,1160 @@
+#!/usr/bin/env python3
+"""
+🦉 OWL-AGENT PROXY DEFENSE STACK v4.2
+- ProxyBroker2 with country filtering
+- Quality scoring (weighted success/latency)
+- Adaptive rate limiting (per-domain)
+- Redis state sharing (optional)
+- curl_cffi Chrome fingerprinting
+- Retry-After parsing
+- Circuit breaker
+- agent-browser integration
+- LRU cache, dedup, direct fallback
+- Prometheus metrics (/metrics endpoint)
+"""
+
+import asyncio
+import hashlib
+import json
+import time
+import logging
+import subprocess
+import email.utils
+import datetime
+import warnings
+import threading
+from dataclasses import dataclass, field
+from typing import Optional, Dict, Any, Callable, Awaitable, List, Set
+from pathlib import Path
+from urllib.parse import urlparse
+from collections import OrderedDict
+
+# Prometheus metrics
+try:
+    from prometheus_client import Counter, Gauge, Histogram, start_http_server, REGISTRY
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+
+# Fix asyncio compatibility for Python 3.12+ (proxybroker uses deprecated get_event_loop)
+import sys
+if sys.version_info >= (3, 12):
+    _original_get_event_loop = asyncio.get_event_loop
+    def _patched_get_event_loop():
+        try:
+            return _original_get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop
+    asyncio.get_event_loop = _patched_get_event_loop
+
+import aiohttp
+import aiofiles
+import httpx
+from circuitbreaker import CircuitBreaker
+
+# Optional resilient_httpx
+RESILIENT_HTTPX_AVAILABLE = False
+try:
+    from resilient_httpx import AsyncProxyHttpClient as ResilientAsyncClient
+    from resilient_httpx import RetryPolicy
+    RESILIENT_HTTPX_AVAILABLE = True
+except (ImportError, AttributeError):
+    try:
+        from resilient_httpx import AsyncClient as ResilientAsyncClient
+        RESILIENT_HTTPX_AVAILABLE = True
+    except (ImportError, AttributeError):
+        pass
+
+# Optional proxybroker (may not work on Python 3.14+)
+PROXYBROKER_AVAILABLE = False
+try:
+    from proxybroker import Broker
+    PROXYBROKER_AVAILABLE = True
+except (ImportError, RuntimeError):
+    try:
+        from proxybroker2 import Broker
+        PROXYBROKER_AVAILABLE = True
+    except (ImportError, RuntimeError):
+        pass
+
+# Optional litproxy (empty package on PyPI - provide fallback)
+LITPROXY_AVAILABLE = False
+try:
+    from litproxy import use_proxy
+    # Verify it's actually usable
+    if callable(use_proxy):
+        LITPROXY_AVAILABLE = True
+except (ImportError, AttributeError):
+    pass
+
+# Fallback context manager for proxy rotation if litproxy not available
+class SimpleProxyRotation:
+    """Simple proxy rotation context manager when litproxy is not available."""
+    def __init__(self, proxy_url: str):
+        self.proxy_url = proxy_url
+        self._old_env = {}
+
+    def __enter__(self):
+        import os
+        self._old_env = {
+            'http_proxy': os.environ.get('http_proxy'),
+            'https_proxy': os.environ.get('https_proxy'),
+            'HTTP_PROXY': os.environ.get('HTTP_PROXY'),
+            'HTTPS_PROXY': os.environ.get('HTTPS_PROXY'),
+        }
+        os.environ['http_proxy'] = self.proxy_url
+        os.environ['https_proxy'] = self.proxy_url
+        os.environ['HTTP_PROXY'] = self.proxy_url
+        os.environ['HTTPS_PROXY'] = self.proxy_url
+        return self
+
+    def __exit__(self, *args):
+        import os
+        for key, value in self._old_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+# Optional curl_cffi
+CURL_CFFI_AVAILABLE = False
+try:
+    from curl_cffi.requests import AsyncSession as CurlAsyncSession
+    CURL_CFFI_AVAILABLE = True
+except ImportError:
+    pass
+
+# Optional Redis
+REDIS_AVAILABLE = False
+try:
+    import redis.asyncio as redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    pass
+
+# ─── Prometheus Metrics ─────────────────────────────────────────
+if PROMETHEUS_AVAILABLE:
+    OWL_REQUESTS = Counter('owl_requests_total', 'Total requests made', ['method', 'status', 'domain'])
+    OWL_REQUEST_ERRORS = Counter('owl_request_errors_total', 'Total failed requests', ['method', 'domain', 'error_type'])
+    OWL_REQUEST_LATENCY = Histogram('owl_request_latency_seconds', 'Request latency in seconds', ['domain'],
+                                    buckets=[0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0])
+    OWL_PROXY_POOL_SIZE = Gauge('owl_proxy_pool_size', 'Total proxies in pool')
+    OWL_PROXY_HEALTHY = Gauge('owl_proxy_healthy', 'Number of healthy proxies')
+    OWL_PROXY_BANNED = Gauge('owl_proxy_banned', 'Number of banned proxies')
+    OWL_PROXY_SCORE_AVG = Gauge('owl_proxy_score_average', 'Average proxy quality score')
+    OWL_CACHE_HITS = Counter('owl_cache_hits_total', 'Cache hits')
+    OWL_CACHE_MISSES = Counter('owl_cache_misses_total', 'Cache misses')
+    OWL_CIRCUIT_BREAKER_OPEN = Gauge('owl_circuit_breaker_open', 'Circuit breaker state per domain', ['domain'])
+    OWL_RATE_LIMIT = Gauge('owl_rate_limit_current', 'Current adaptive rate limit per domain', ['domain'])
+    OWL_DEDUP_COalesced = Counter('owl_dedup_coalesced_total', 'Requests deduplicated (coalesced)')
+    OWL_DIRECT_FALLBACKS = Counter('owl_direct_fallbacks_total', 'Direct connection fallbacks (no proxy)', ['domain'])
+
+    _metrics_server_started = False
+
+    def _start_metrics_server(port: int = 8000):
+        """Start Prometheus metrics HTTP server in a daemon thread."""
+        global _metrics_server_started
+        if _metrics_server_started:
+            return
+        try:
+            start_http_server(port)
+            _metrics_server_started = True
+            logger.info(f"Prometheus metrics available at http://0.0.0.0:{port}/metrics")
+        except Exception as e:
+            logger.warning(f"Failed to start metrics server on port {port}: {e}")
+
+# ─── Paths ──────────────────────────────────────────────────────
+CACHE_DIR = Path.home() / ".owl-agent" / "cache" / "http"
+CONFIG_DIR = Path.home() / ".owl-agent" / "config"
+PROXY_CACHE_FILE = CONFIG_DIR / "proxy_cache.json"
+
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+# ─── Constants (Memory-Optimised) ──────────────────────────────
+DEFAULT_TTL = 300
+DEFAULT_RATE = 1.0
+MAX_RETRIES = 3
+MAX_CACHED_RESPONSES = 500       # Reduced from 1000 for memory savings
+MAX_PROXY_CACHE = 50             # Reduced from 100 for memory savings
+MAX_QUEUE_SIZE = 20              # Reduced from 50 for memory savings
+MAX_SESSIONS = 10                # Reduced from 20
+MAX_DOMAINS_RATE_LIMIT = 500     # Reduced from 1000
+CIRCUIT_BREAKER_FAILURE_THRESHOLD = 5
+CIRCUIT_BREAKER_RECOVERY_TIMEOUT = 30
+DEFAULT_COUNTRIES = ["US", "GB", "DE", "FR", "CA"]
+QUALITY_DECAY = 0.9
+ADAPTIVE_MIN_RATE = 0.1
+ADAPTIVE_MAX_RATE = 5.0
+CLEANUP_INTERVAL = 30            # Seconds between cache cleanup
+MAX_SCORE_HISTORY = 50           # Reduced from 100 for memory savings
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+logger = logging.getLogger("owl-agent.proxy")
+
+# ─── Data Classes (memory-optimised) ──────────────────────────
+@dataclass(slots=True)
+class CachedResponse:
+    status: int
+    content: bytes
+    headers: Dict[str, str]
+    timestamp: float
+    ttl: int
+    protocol: str = "http/1.1"
+    def is_fresh(self) -> bool:
+        return time.time() - self.timestamp < self.ttl
+
+@dataclass(slots=True)
+class TokenBucket:
+    rate: float
+    capacity: float
+    tokens: float = 0.0
+    last_update: float = field(default_factory=time.time)
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    async def _replenish(self):
+        now = time.time()
+        elapsed = now - self.last_update
+        async with self.lock:
+            self.tokens = min(self.capacity, self.tokens + elapsed * self.rate)
+            self.last_update = now
+    async def acquire(self, tokens: float = 1.0) -> bool:
+        await self._replenish()
+        async with self.lock:
+            if self.tokens >= tokens:
+                self.tokens -= tokens
+                return True
+        wait_time = (tokens - self.tokens) / self.rate
+        await asyncio.sleep(wait_time)
+        return await self.acquire(tokens)
+
+@dataclass(slots=True)
+class ProxyEntry:
+    url: str
+    healthy: bool = True
+    last_check: float = 0.0
+    fail_count: int = 0
+    ban_until: float = 0.0
+    def is_banned(self) -> bool:
+        return time.time() < self.ban_until
+    def mark_failed(self):
+        self.fail_count += 1
+        self.ban_until = time.time() + 60
+        self.healthy = False
+        logger.warning(f"Proxy banned (60s): {self.url}")
+    def mark_success(self):
+        self.fail_count = 0
+        self.healthy = True
+        self.last_check = time.time()
+
+# ─── HTTPCache (LRU + periodic cleanup) ──────────────────────
+class HTTPCache:
+    def __init__(self, ttl: int = DEFAULT_TTL, max_size: int = MAX_CACHED_RESPONSES):
+        self.ttl = ttl
+        self._max_size = max_size
+        self._memory: Dict[str, CachedResponse] = {}
+        self._lock = asyncio.Lock()
+        self._cleanup_task: Optional[asyncio.Task] = None
+
+    async def start_cleaner(self):
+        if self._cleanup_task is None or self._cleanup_task.done():
+            self._cleanup_task = asyncio.create_task(self._cleanup_loop())
+
+    async def _cleanup_loop(self):
+        while True:
+            await asyncio.sleep(CLEANUP_INTERVAL)
+            now = time.time()
+            async with self._lock:
+                expired = [k for k, v in self._memory.items() if not v.is_fresh()]
+                for k in expired:
+                    del self._memory[k]
+                if len(self._memory) > self._max_size:
+                    sorted_items = sorted(self._memory.items(), key=lambda x: x[1].timestamp)
+                    for k, _ in sorted_items[:len(self._memory)-self._max_size]:
+                        del self._memory[k]
+
+    def _key(self, method: str, url: str, params: Optional[Dict] = None, protocol: str = "http/1.1") -> str:
+        return hashlib.sha256(f"{method}:{url}:{json.dumps(params or {}, sort_keys=True)}:{protocol}".encode()).hexdigest()
+
+    async def get(self, method: str, url: str, params: Optional[Dict] = None, protocol: str = "http/1.1") -> Optional[CachedResponse]:
+        key = self._key(method, url, params, protocol)
+        if key in self._memory and self._memory[key].is_fresh():
+            if PROMETHEUS_AVAILABLE:
+                OWL_CACHE_HITS.inc()
+            return self._memory[key]
+        path = CACHE_DIR / f"{key}.json"
+        if path.exists():
+            try:
+                async with aiofiles.open(path, 'r') as f:
+                    data = json.loads(await f.read())
+                cached = CachedResponse(
+                    status=data["status"], content=data["content"].encode('utf-8', errors='replace'),
+                    headers=data["headers"], timestamp=data["timestamp"], ttl=data["ttl"], protocol=data.get("protocol", "http/1.1")
+                )
+                if cached.is_fresh():
+                    async with self._lock:
+                        self._memory[key] = cached
+                    if PROMETHEUS_AVAILABLE:
+                        OWL_CACHE_HITS.inc()
+                    return cached
+                else:
+                    path.unlink()
+            except Exception:
+                pass
+        if PROMETHEUS_AVAILABLE:
+            OWL_CACHE_MISSES.inc()
+        return None
+
+    async def set(self, method: str, url: str, response: CachedResponse, params: Optional[Dict] = None):
+        key = self._key(method, url, params, response.protocol)
+        async with self._lock:
+            self._memory[key] = response
+        path = CACHE_DIR / f"{key}.json"
+        data = {"status": response.status, "content": response.content.decode('utf-8', errors='replace'), "headers": response.headers,
+                "timestamp": response.timestamp, "ttl": response.ttl, "protocol": response.protocol}
+        async with aiofiles.open(path, 'w') as f:
+            await f.write(json.dumps(data))
+
+# ─── RequestDeduplicator ──────────────────────────────────────
+class RequestDeduplicator:
+    def __init__(self):
+        self._in_flight: Dict[str, asyncio.Future] = {}
+        self._lock = asyncio.Lock()
+    def _key(self, method: str, url: str, params: Optional[Dict] = None, protocol: str = "http/1.1") -> str:
+        return hashlib.sha256(f"{method}:{url}:{json.dumps(params or {}, sort_keys=True)}:{protocol}".encode()).hexdigest()
+    async def execute(self, method: str, url: str, params: Optional[Dict], protocol: str, factory: Callable[[], Awaitable[CachedResponse]]) -> CachedResponse:
+        key = self._key(method, url, params, protocol)
+        async with self._lock:
+            if key in self._in_flight:
+                if PROMETHEUS_AVAILABLE:
+                    OWL_DEDUP_COalesced.inc()
+                return await self._in_flight[key]
+            future = asyncio.Future()
+            self._in_flight[key] = future
+        try:
+            result = await factory()
+            future.set_result(result)
+            return result
+        except Exception as e:
+            future.set_exception(e)
+            raise
+        finally:
+            async with self._lock:
+                self._in_flight.pop(key, None)
+
+# ─── QualityScorer ─────────────────────────────────────────────
+class QualityScorer:
+    """Weighted scoring for proxies based on success rate and latency."""
+    def __init__(self, decay_factor: float = QUALITY_DECAY):
+        self._scores: Dict[str, float] = {}
+        self._history: Dict[str, List[float]] = {}
+        self._decay = decay_factor
+
+    def update(self, proxy_url: str, success: bool, latency_ms: float = 9999.0):
+        old_score = self._scores.get(proxy_url, 0.5)
+        new_score = old_score * self._decay + (1.0 if success else 0.0) * (1 - self._decay)
+        self._scores[proxy_url] = new_score
+        if proxy_url not in self._history:
+            self._history[proxy_url] = []
+        self._history[proxy_url].append(latency_ms)
+        # Memory optimization: limit history size
+        if len(self._history[proxy_url]) > MAX_SCORE_HISTORY:
+            self._history[proxy_url] = self._history[proxy_url][-MAX_SCORE_HISTORY:]
+
+    def get_score(self, proxy_url: str) -> float:
+        return self._scores.get(proxy_url, 0.5)
+
+    def get_best_proxy(self, proxies: List[str]) -> Optional[str]:
+        if not proxies:
+            return None
+        return max(proxies, key=lambda p: self.get_score(p))
+
+    def get_all_scores(self) -> Dict[str, float]:
+        return self._scores.copy()
+
+# ─── AdaptiveRateLimiter ──────────────────────────────────────
+class AdaptiveRateLimiter:
+    """Dynamically adjusts per-domain request rate based on response codes."""
+    def __init__(self, base_rate: float = DEFAULT_RATE,
+                 min_rate: float = ADAPTIVE_MIN_RATE,
+                 max_rate: float = ADAPTIVE_MAX_RATE):
+        self.base_rate = base_rate
+        self.min_rate = min_rate
+        self.max_rate = max_rate
+        self._rates: Dict[str, float] = {}
+        self._lock = asyncio.Lock()
+
+    async def adjust(self, domain: str, status: int):
+        async with self._lock:
+            current = self._rates.get(domain, self.base_rate)
+            if status in (429, 503):
+                new_rate = max(self.min_rate, current * 0.5)
+            elif 200 <= status < 300:
+                new_rate = min(self.max_rate, current * 1.1)
+            else:
+                new_rate = current
+            self._rates[domain] = new_rate
+            logger.debug(f"Rate for {domain}: {new_rate:.2f} req/s")
+
+    async def get_rate(self, domain: str) -> float:
+        return self._rates.get(domain, self.base_rate)
+
+    async def get_all_rates(self) -> Dict[str, float]:
+        return self._rates.copy()
+
+# ─── RedisStore (optional) ────────────────────────────────────
+class RedisStore:
+    """Persistent state storage using Redis."""
+    def __init__(self, url: str = "redis://localhost:6379", prefix: str = "owl:"):
+        self.url = url
+        self.prefix = prefix
+        self._redis = None
+        self._enabled = False
+
+    async def connect(self):
+        if not REDIS_AVAILABLE:
+            logger.warning("Redis not installed – falling back to memory")
+            return
+        try:
+            self._redis = redis.from_url(self.url, decode_responses=True)
+            await self._redis.ping()
+            self._enabled = True
+            logger.info("Redis connected")
+        except Exception as e:
+            logger.warning(f"Redis unavailable: {e} – falling back to memory")
+            self._enabled = False
+
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+        if self._enabled:
+            await self._redis.set(self.prefix + key, json.dumps(value), ex=ttl)
+
+    async def get(self, key: str) -> Optional[Any]:
+        if not self._enabled:
+            return None
+        data = await self._redis.get(self.prefix + key)
+        if data:
+            return json.loads(data)
+        return None
+
+    async def delete(self, key: str):
+        if self._enabled:
+            await self._redis.delete(self.prefix + key)
+
+    async def keys(self, pattern: str) -> List[str]:
+        if not self._enabled:
+            return []
+        return await self._redis.keys(self.prefix + pattern)
+
+# ─── ProxyPoolManager with country filtering (Memory-Optimised) ──────────────
+class ProxyPoolManager:
+    def __init__(self, max_queue: int = MAX_QUEUE_SIZE, cache_file: Path = PROXY_CACHE_FILE,
+                 cache_max: int = MAX_PROXY_CACHE, countries: Optional[List[str]] = None):
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
+        self._lock = asyncio.Lock()
+        self._running = False
+        self._cache_file = cache_file
+        self._cache_max = cache_max
+        self._proxies: List[ProxyEntry] = []
+        self._url_set: Set[str] = set()
+        try:
+            self._broker = Broker() if PROXYBROKER_AVAILABLE else None
+        except Exception:
+            self._broker = None
+        self.countries = countries or DEFAULT_COUNTRIES
+
+    async def start(self):
+        self._running = True
+        self._load_cache()
+
+        # If no cached proxies, try to fetch from public lists
+        if not self._proxies:
+            await self._fetch_public_proxies()
+
+        # Fill queue without blocking (skip if full)
+        for p in self._proxies:
+            if p.healthy and not p.is_banned():
+                try:
+                    self.queue.put_nowait(p.url)
+                except asyncio.QueueFull:
+                    break
+
+        if PROXYBROKER_AVAILABLE and self._broker:
+            asyncio.create_task(self._discovery_loop())
+
+        logger.info(f"Proxy pool: {self.queue.qsize()} proxies ready")
+
+    async def _fetch_public_proxies(self):
+        """Fetch proxies from public proxy lists."""
+        proxy_urls = [
+            "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
+            "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/https.txt",
+            "https://raw.githubusercontent.com/mmpx12/proxy-list/master/https.txt",
+            "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt",
+            "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+            "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt",
+        ]
+
+        logger.info("Fetching proxies from public lists...")
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            for url in proxy_urls:
+                # Stop if we have enough proxies
+                if len(self._proxies) >= self._cache_max:
+                    break
+
+                try:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        lines = resp.text.strip().split('\n')
+                        count = 0
+                        # Limit per source and total
+                        max_per_source = min(20, self._cache_max - len(self._proxies))
+                        for line in lines[:max_per_source]:
+                            line = line.strip()
+                            if line and ':' in line:
+                                # Determine protocol
+                                if 'socks5' in url.lower():
+                                    proxy_url = f"socks5://{line}"
+                                elif 'https' in url.lower():
+                                    proxy_url = f"https://{line}"
+                                else:
+                                    proxy_url = f"http://{line}"
+
+                                if proxy_url not in self._url_set:
+                                    p = ProxyEntry(url=proxy_url)
+                                    self._proxies.append(p)
+                                    self._url_set.add(proxy_url)
+                                    count += 1
+                        if count > 0:
+                            logger.info(f"  Fetched {count} proxies from {url.split('/')[-1]}")
+                except Exception as e:
+                    logger.debug(f"  Failed to fetch from {url}: {e}")
+                    continue
+
+        if self._proxies:
+            # Enforce maximum cache size
+            if len(self._proxies) > self._cache_max:
+                self._proxies = self._proxies[-self._cache_max:]
+                self._url_set = {p.url for p in self._proxies}
+            self._save_cache()
+            logger.info(f"Total proxies loaded: {len(self._proxies)}")
+
+    def _load_cache(self):
+        if not self._cache_file.exists():
+            return
+        try:
+            with open(self._cache_file, 'r') as f:
+                data = json.load(f)
+            for item in data.get("proxies", [])[:self._cache_max]:  # Limit on load
+                p = ProxyEntry(
+                    url=item["url"],
+                    healthy=item.get("healthy", True),
+                    last_check=item.get("last_check", 0.0),
+                    fail_count=item.get("fail_count", 0),
+                    ban_until=item.get("ban_until", 0.0)
+                )
+                self._proxies.append(p)
+                self._url_set.add(p.url)
+            logger.info(f"Loaded {len(self._proxies)} proxies from cache")
+        except Exception as e:
+            logger.warning(f"Failed to load proxy cache: {e}")
+
+    def _save_cache(self):
+        data = {
+            "proxies": [
+                {
+                    "url": p.url,
+                    "healthy": p.healthy,
+                    "last_check": p.last_check,
+                    "fail_count": p.fail_count,
+                    "ban_until": p.ban_until
+                } for p in self._proxies
+            ]
+        }
+        try:
+            with open(self._cache_file, 'w') as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Failed to save proxy cache: {e}")
+
+    async def _discovery_loop(self):
+        while self._running:
+            try:
+                async for proxy in self._broker.find(
+                    types=['HTTP', 'HTTPS', 'SOCKS4', 'SOCKS5'],
+                    anonymity=['high', 'anonymous'],
+                    country=self.countries,
+                    limit=0
+                ):
+                    if not self._running:
+                        break
+                    url = f"{proxy.protocol}://{proxy.host}:{proxy.port}"
+                    if url not in self._url_set:
+                        p = ProxyEntry(url=url)
+                        self._proxies.append(p)
+                        self._url_set.add(url)
+                        await self.queue.put(url)
+                        logger.debug(f"Discovered proxy: {url} (country: {proxy.country})")
+                        if len(self._proxies) > self._cache_max:
+                            self._proxies = self._proxies[-self._cache_max:]
+                            self._url_set = {p.url for p in self._proxies}
+                        self._save_cache()
+            except Exception as e:
+                logger.error(f"ProxyBroker2 discovery error: {e}")
+                await asyncio.sleep(10)
+
+    async def get(self) -> Optional[str]:
+        try:
+            url = await asyncio.wait_for(self.queue.get(), timeout=5.0)
+            return url
+        except asyncio.TimeoutError:
+            return None
+
+    def get_all_urls(self) -> List[str]:
+        return [p.url for p in self._proxies if p.healthy and not p.is_banned()]
+
+    def stop(self):
+        self._running = False
+        self._save_cache()
+
+# ─── DomainCircuitBreaker ──────────────────────────────────────
+class DomainCircuitBreaker:
+    def __init__(self, failure_threshold=CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+                 recovery_timeout=CIRCUIT_BREAKER_RECOVERY_TIMEOUT):
+        self._breakers: Dict[str, CircuitBreaker] = {}
+        self._failure_threshold = failure_threshold
+        self._recovery_timeout = recovery_timeout
+
+    def get(self, domain: str) -> CircuitBreaker:
+        if domain not in self._breakers:
+            self._breakers[domain] = CircuitBreaker(
+                failure_threshold=self._failure_threshold,
+                recovery_timeout=self._recovery_timeout
+            )
+        return self._breakers[domain]
+
+    def can_execute(self, domain: str) -> bool:
+        breaker = self.get(domain)
+        # CircuitBreaker is open if it's in the 'opened' state
+        return not breaker.opened
+
+    def record_success(self, domain: str):
+        """Record a successful call - resets failure count."""
+        breaker = self.get(domain)
+        if breaker.opened:
+            breaker.reset()
+
+    def record_failure(self, domain: str):
+        """Record a failed call - increments failure count."""
+        breaker = self.get(domain)
+        # Manually track failures since circuitbreaker library uses decorator pattern
+        if not hasattr(breaker, '_manual_failures'):
+            breaker._manual_failures = 0
+        breaker._manual_failures += 1
+        if breaker._manual_failures >= self._failure_threshold:
+            breaker._opened = True
+            breaker._last_failure = time.time()
+
+# ─── AgentBrowserWrapper ──────────────────────────────────────
+class AgentBrowserWrapper:
+    def __init__(self, proxy_url: Optional[str] = None, headless: bool = True):
+        self.proxy_url = proxy_url
+        self.headless = headless
+
+    async def fetch_page(self, url: str, wait_for: Optional[str] = None, timeout: int = 30) -> str:
+        cmd = ["agent-browser", "fetch", url]
+        if self.proxy_url:
+            cmd.extend(["--proxy", self.proxy_url])
+        if self.headless:
+            cmd.append("--headless")
+        if wait_for:
+            cmd.extend(["--wait", wait_for])
+        cmd.extend(["--timeout", str(timeout)])
+        try:
+            result = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            stdout, stderr = await result.communicate()
+            if result.returncode != 0:
+                logger.error(f"agent-browser error: {stderr.decode()}")
+                raise RuntimeError(f"agent-browser failed: {stderr.decode()}")
+            return stdout.decode('utf-8', errors='replace')
+        except FileNotFoundError:
+            raise RuntimeError("agent-browser not installed. Run: npx skills add vercel-labs/agent-browser")
+
+# ─── ResilientClient (Unified) ──────────────────────────────
+class ResilientClient:
+    def __init__(self,
+                 cache_ttl: int = DEFAULT_TTL,
+                 rate_limit: float = DEFAULT_RATE,
+                 max_retries: int = MAX_RETRIES,
+                 use_curl_cffi: bool = False,
+                 countries: Optional[List[str]] = None,
+                 use_redis: bool = False,
+                 redis_url: str = "redis://localhost:6379",
+                 metrics_port: int = 8000):
+        self.cache = HTTPCache(cache_ttl)
+        self.dedup = RequestDeduplicator()
+        self.limiter = AdaptiveRateLimiter(base_rate=rate_limit)
+        self.max_retries = max_retries
+        self.pool_manager = ProxyPoolManager(countries=countries)
+        self.circuit_breakers = DomainCircuitBreaker()
+        self.scorer = QualityScorer()
+        self.use_curl_cffi = use_curl_cffi and CURL_CFFI_AVAILABLE
+        if self.use_curl_cffi:
+            logger.info("Using curl_cffi for requests (Chrome 110 fingerprint)")
+        else:
+            logger.info("Using httpx for requests")
+        self.use_redis = use_redis
+        self.redis_url = redis_url
+        self.redis_store = None
+        self._direct_session = None
+        self._resilient_client = None
+        self._browser_wrapper = None
+        self._metrics_port = metrics_port
+
+    async def __aenter__(self):
+        await self.pool_manager.start()
+        await self.cache.start_cleaner()
+
+        # Start Prometheus metrics server
+        if PROMETHEUS_AVAILABLE:
+            try:
+                _start_metrics_server(getattr(self, '_metrics_port', 8000))
+            except Exception:
+                pass
+
+        if self.use_curl_cffi:
+            self._direct_session = CurlAsyncSession(
+                impersonate="chrome110",
+                timeout=30,
+                verify=True
+            )
+        else:
+            self._direct_session = httpx.AsyncClient(http2=True)
+
+        if RESILIENT_HTTPX_AVAILABLE:
+            try:
+                self._resilient_client = ResilientAsyncClient(
+                    retry=RetryPolicy(
+                        max_retries=self.max_retries,
+                        backoff_factor=0.5,
+                        status_forcelist=[429, 500, 502, 503, 504],
+                    ) if 'RetryPolicy' in dir() else None,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to initialize resilient_httpx: {e}")
+                self._resilient_client = None
+        else:
+            logger.warning("resilient_httpx not available - using httpx directly")
+            self._resilient_client = None
+
+        self._browser_wrapper = AgentBrowserWrapper()
+
+        if self.use_redis:
+            self.redis_store = RedisStore(self.redis_url)
+            await self.redis_store.connect()
+            await self._load_state()
+
+        return self
+
+    async def __aexit__(self, *args):
+        self.pool_manager.stop()
+        if self._direct_session:
+            if hasattr(self._direct_session, 'aclose'):
+                await self._direct_session.aclose()
+            elif hasattr(self._direct_session, 'close'):
+                # curl_cffi AsyncSession.close() is a coroutine
+                import asyncio
+                result = self._direct_session.close()
+                if asyncio.iscoroutine(result):
+                    await result
+
+    async def _load_state(self):
+        """Load scores and rates from Redis."""
+        if not self.redis_store or not self.redis_store._enabled:
+            return
+        try:
+            keys = await self.redis_store.keys("score:*")
+            for key in keys:
+                proxy_url = key.split(":")[-1]
+                score = await self.redis_store.get(f"score:{proxy_url}")
+                if score is not None:
+                    self.scorer._scores[proxy_url] = float(score)
+            keys = await self.redis_store.keys("rate:*")
+            for key in keys:
+                domain = key.split(":")[-1]
+                rate = await self.redis_store.get(f"rate:{domain}")
+                if rate is not None:
+                    self.limiter._rates[domain] = float(rate)
+            logger.info("State loaded from Redis")
+        except Exception as e:
+            logger.warning(f"Failed to load state from Redis: {e}")
+
+    async def _save_state(self):
+        """Save scores and rates to Redis."""
+        if not self.redis_store or not self.redis_store._enabled:
+            return
+        try:
+            for proxy_url, score in self.scorer.get_all_scores().items():
+                await self.redis_store.set(f"score:{proxy_url}", score, ttl=3600)
+            for domain, rate in await self.limiter.get_all_rates().items():
+                await self.redis_store.set(f"rate:{domain}", rate, ttl=3600)
+        except Exception as e:
+            logger.warning(f"Failed to save state to Redis: {e}")
+
+    def _update_pool_metrics(self):
+        """Update Prometheus gauge metrics for proxy pool."""
+        if not PROMETHEUS_AVAILABLE:
+            return
+        total = len(self.pool_manager._proxies)
+        healthy = sum(1 for p in self.pool_manager._proxies if p.healthy and not p.is_banned())
+        banned = sum(1 for p in self.pool_manager._proxies if p.is_banned())
+        scores = self.scorer.get_all_scores()
+        avg_score = sum(scores.values()) / len(scores) if scores else 0.0
+        OWL_PROXY_POOL_SIZE.set(total)
+        OWL_PROXY_HEALTHY.set(healthy)
+        OWL_PROXY_BANNED.set(banned)
+        OWL_PROXY_SCORE_AVG.set(avg_score)
+
+    async def _get_best_proxy(self) -> Optional[str]:
+        healthy_urls = self.pool_manager.get_all_urls()
+        if not healthy_urls:
+            return None
+        return self.scorer.get_best_proxy(healthy_urls)
+
+    async def _execute_with_resilient_client(self, method, url, params, headers, **kwargs):
+        # Extract proxy_url from kwargs to avoid passing it to HTTP clients
+        proxy_url = kwargs.pop('proxy_url', None) or await self._get_best_proxy()
+        if proxy_url:
+            if self.use_curl_cffi:
+                proxies = {"http": proxy_url, "https": proxy_url}
+                response = await self._direct_session.request(
+                    method, url, params=params, headers=headers, proxies=proxies, **kwargs
+                )
+                return response
+            elif self._resilient_client:
+                proxy_context = use_proxy(proxy_url) if LITPROXY_AVAILABLE else SimpleProxyRotation(proxy_url)
+                with proxy_context:
+                    response = await self._resilient_client.request(
+                        method, url, params=params, headers=headers, **kwargs
+                    )
+                return response
+            else:
+                # Fallback: use proxy with httpx directly
+                async with httpx.AsyncClient(proxy=proxy_url) as client:
+                    response = await client.request(method, url, params=params, headers=headers, **kwargs)
+                    return response
+        else:
+            response = await self._direct_session.request(
+                method, url, params=params, headers=headers, **kwargs
+            )
+            return response
+
+    async def _fetch_with_browser(self, url: str, wait_for: Optional[str] = None, timeout: int = 30) -> str:
+        proxy = await self._get_best_proxy()
+        browser = AgentBrowserWrapper(proxy_url=proxy)
+        return await browser.fetch_page(url, wait_for, timeout)
+
+    async def request(self, method: str, url: str, params: Optional[Dict] = None,
+                      headers: Optional[Dict] = None, browser: bool = False,
+                      wait_for: Optional[str] = None, timeout: int = 30, **kwargs) -> CachedResponse:
+        if browser:
+            content = await self._fetch_with_browser(url, wait_for, timeout)
+            return CachedResponse(
+                status=200,
+                content=content.encode('utf-8'),
+                headers={"Content-Type": "text/html"},
+                timestamp=time.time(),
+                ttl=self.cache.ttl
+            )
+
+        cached = await self.cache.get(method, url, params)
+        if cached:
+            return cached
+
+        async def factory():
+            return await self._execute_with_retry(method, url, params, headers, **kwargs)
+        return await self.dedup.execute(method, url, params, "http/1.1", factory)
+
+    async def _execute_with_retry(self, method, url, params, headers, **kwargs):
+        domain = urlparse(url).netloc
+
+        if not self.circuit_breakers.can_execute(domain):
+            if PROMETHEUS_AVAILABLE:
+                OWL_CIRCUIT_BREAKER_OPEN.labels(domain=domain).set(1)
+            raise RuntimeError(f"Circuit breaker open for {domain}")
+
+        breaker = self.circuit_breakers.get(domain)
+
+        rate = await self.limiter.get_rate(domain)
+        if PROMETHEUS_AVAILABLE:
+            OWL_RATE_LIMIT.labels(domain=domain).set(rate)
+
+        for attempt in range(self.max_retries):
+            start = time.time()
+            try:
+                response = await self._execute_with_resilient_client(method, url, params, headers, **kwargs)
+
+                if self.use_curl_cffi:
+                    content = response.content
+                    status = response.status_code
+                    resp_headers = dict(response.headers)
+                else:
+                    content = await response.aread()
+                    status = response.status_code
+                    resp_headers = dict(response.headers)
+
+                latency = (time.time() - start) * 1000
+
+                cached_response = CachedResponse(
+                    status=status,
+                    content=content,
+                    headers=resp_headers,
+                    timestamp=time.time(),
+                    ttl=self.cache.ttl
+                )
+
+                proxy_url = kwargs.get('proxy_url') or await self._get_best_proxy()
+                if proxy_url:
+                    self.scorer.update(proxy_url, success=True, latency_ms=latency)
+
+                await self.limiter.adjust(domain, status)
+
+                self.circuit_breakers.record_success(domain)
+                if PROMETHEUS_AVAILABLE:
+                    OWL_CIRCUIT_BREAKER_OPEN.labels(domain=domain).set(0)
+
+                if PROMETHEUS_AVAILABLE:
+                    OWL_REQUESTS.labels(method=method, status=str(status), domain=domain).inc()
+                    OWL_REQUEST_LATENCY.labels(domain=domain).observe(latency / 1000.0)
+
+                if status in (429, 503) and 'retry-after' in resp_headers:
+                    retry_after = resp_headers['retry-after']
+                    try:
+                        seconds = int(retry_after)
+                    except ValueError:
+                        try:
+                            retry_date = email.utils.parsedate_to_datetime(retry_after)
+                            seconds = max(0, (retry_date - datetime.datetime.now(datetime.timezone.utc)).total_seconds())
+                        except Exception:
+                            seconds = 5
+                    logger.info(f"Retry-After: sleeping {seconds}s before retry")
+                    await asyncio.sleep(seconds)
+                    continue
+
+                await self.cache.set(method, url, cached_response, params)
+                await self._save_state()
+                self._update_pool_metrics()
+                return cached_response
+
+            except Exception as e:
+                self.circuit_breakers.record_failure(domain)
+                proxy_url = kwargs.get('proxy_url') or await self._get_best_proxy()
+                if proxy_url:
+                    self.scorer.update(proxy_url, success=False)
+                await self.limiter.adjust(domain, 500)
+                if PROMETHEUS_AVAILABLE:
+                    OWL_REQUEST_ERRORS.labels(method=method, domain=domain, error_type=type(e).__name__).inc()
+                logger.warning(f"Request failed (attempt {attempt+1}/{self.max_retries}): {e}")
+                continue
+
+        if PROMETHEUS_AVAILABLE:
+            OWL_DIRECT_FALLBACKS.labels(domain=domain).inc()
+        logger.info("All proxies exhausted, attempting direct connection...")
+        # Remove proxy_url from kwargs for direct connection
+        kwargs.pop('proxy_url', None)
+        try:
+            if self.use_curl_cffi:
+                response = await self._direct_session.request(method, url, params=params, headers=headers, **kwargs)
+                content = response.content
+                status = response.status_code
+                resp_headers = dict(response.headers)
+            else:
+                response = await self._direct_session.request(method, url, params=params, headers=headers, **kwargs)
+                content = await response.aread()
+                status = response.status_code
+                resp_headers = dict(response.headers)
+            cached_response = CachedResponse(
+                status=status,
+                content=content,
+                headers=resp_headers,
+                timestamp=time.time(),
+                ttl=self.cache.ttl
+            )
+            await self.cache.set(method, url, cached_response, params)
+            self._update_pool_metrics()
+            return cached_response
+        except Exception as e:
+            raise RuntimeError(f"Direct connection also failed: {e}")
+
+    async def get_stats(self):
+        import sys
+        total = len(self.pool_manager._proxies)
+        healthy = sum(1 for p in self.pool_manager._proxies if p.healthy and not p.is_banned())
+        scores = self.scorer.get_all_scores()
+        rates = await self.limiter.get_all_rates()
+
+        # Memory usage estimation
+        cache_size = len(self.cache._memory)
+        dedup_size = len(self.dedup._in_flight)
+
+        stats = {
+            "proxies_total": total,
+            "proxies_healthy": healthy,
+            "scores": scores,
+            "rates": rates,
+            "cache_entries": cache_size,
+            "pending_requests": dedup_size,
+            "memory_optimized": True,
+            "prometheus_enabled": PROMETHEUS_AVAILABLE
+        }
+
+        # Update Prometheus gauges
+        if PROMETHEUS_AVAILABLE:
+            self._update_pool_metrics()
+
+        return stats
+
+# ─── CLI Entry Point ────────────────────────────────────────────
+def parse_args():
+    """Parse command-line arguments."""
+    import argparse
+    parser = argparse.ArgumentParser(description="OWL-AGENT v4.2 — Self-Optimising Scraping Engine")
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # fetch command
+    fetch_parser = subparsers.add_parser("fetch", help="Fetch a URL")
+    fetch_parser.add_argument("url", help="URL to fetch")
+    fetch_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    fetch_parser.add_argument("--browser", action="store_true", help="Use agent-browser")
+    fetch_parser.add_argument("--proxy", help="Use specific proxy")
+    fetch_parser.add_argument("--metrics-port", type=int, default=8000, help="Prometheus metrics port")
+    fetch_parser.add_argument("--use-redis", action="store_true", help="Enable Redis state sharing")
+    fetch_parser.add_argument("--redis-url", default="redis://localhost:6379", help="Redis URL")
+
+    # stats command
+    stats_parser = subparsers.add_parser("stats", help="Show proxy pool stats")
+    stats_parser.add_argument("--metrics-port", type=int, default=8000, help="Prometheus metrics port")
+
+    # bench command
+    bench_parser = subparsers.add_parser("bench", help="Run benchmark")
+    bench_parser.add_argument("--url", default="https://api.github.com/users/octocat", help="Target URL")
+    bench_parser.add_argument("--requests", type=int, default=10, help="Number of requests")
+    bench_parser.add_argument("--concurrent", type=int, default=5, help="Concurrent workers")
+    bench_parser.add_argument("--metrics-port", type=int, default=8000, help="Prometheus metrics port")
+
+    return parser.parse_args()
+
+async def cmd_fetch(args):
+    """Fetch a single URL."""
+    print(f"🦉 OWL-AGENT v4.2 — Fetching {args.url}")
+    async with ResilientClient(
+        use_curl_cffi=True,
+        use_redis=args.use_redis,
+        redis_url=args.redis_url,
+        metrics_port=args.metrics_port
+    ) as client:
+        try:
+            resp = await client.request(
+                "GET", args.url,
+                proxy_url=args.proxy,
+                browser=args.browser
+            )
+            if args.json:
+                result = {
+                    "status": resp.status,
+                    "headers": resp.headers,
+                    "body": resp.content.decode('utf-8', errors='replace'),
+                    "size": len(resp.content)
+                }
+                print(json.dumps(result, indent=2))
+            else:
+                print(f"Status: {resp.status}")
+                print(f"Size: {len(resp.content)} bytes")
+                print(f"Body:\n{resp.content.decode('utf-8', errors='replace')[:2000]}")
+        except Exception as e:
+            print(f"❌ Failed: {e}")
+            raise SystemExit(1)
+
+async def cmd_stats(args):
+    """Show proxy pool statistics."""
+    print("🦉 OWL-AGENT v4.2 — Pool Statistics")
+    async with ResilientClient(metrics_port=args.metrics_port) as client:
+        stats = await client.get_stats()
+        print(f"  Proxies: {stats['proxies_total']} total, {stats['proxies_healthy']} healthy")
+        print(f"  Cache entries: {stats['cache_entries']}")
+        print(f"  Pending requests: {stats['pending_requests']}")
+        print(f"  Prometheus: {'enabled' if stats['prometheus_enabled'] else 'disabled'}")
+        if stats['scores']:
+            print(f"  Top scores:")
+            sorted_scores = sorted(stats['scores'].items(), key=lambda x: x[1], reverse=True)[:5]
+            for proxy, score in sorted_scores:
+                print(f"    {proxy}: {score:.3f}")
+
+async def cmd_bench(args):
+    """Run a simple benchmark."""
+    print(f"🦉 OWL-AGENT v4.2 — Benchmark")
+    print(f"  Target: {args.url}")
+    print(f"  Requests: {args.requests}, Concurrent: {args.concurrent}")
+
+    async with ResilientClient(use_curl_cffi=True, metrics_port=args.metrics_port) as client:
+        sem = asyncio.Semaphore(args.concurrent)
+        results = {"success": 0, "failed": 0, "latencies": []}
+
+        async def _bench_one(i):
+            async with sem:
+                start = time.time()
+                try:
+                    resp = await client.request("GET", args.url)
+                    latency = time.time() - start
+                    results["success"] += 1
+                    results["latencies"].append(latency)
+                except Exception:
+                    results["failed"] += 1
+
+        tasks = [_bench_one(i) for i in range(args.requests)]
+        await asyncio.gather(*tasks)
+
+        if results["latencies"]:
+            avg = sum(results["latencies"]) / len(results["latencies"])
+            p50 = sorted(results["latencies"])[len(results["latencies"]) // 2]
+            p95 = sorted(results["latencies"])[int(len(results["latencies"]) * 0.95)]
+            print(f"\n  Results:")
+            print(f"    Success: {results['success']}/{args.requests}")
+            print(f"    Failed:  {results['failed']}/{args.requests}")
+            print(f"    Avg latency: {avg:.3f}s")
+            print(f"    P50 latency: {p50:.3f}s")
+            print(f"    P95 latency: {p95:.3f}s")
+        else:
+            print("  All requests failed.")
+
+async def main():
+    args = parse_args()
+    if args.command == "fetch":
+        await cmd_fetch(args)
+    elif args.command == "stats":
+        await cmd_stats(args)
+    elif args.command == "bench":
+        await cmd_bench(args)
+    else:
+        # Default: run test
+        print("🦉 OWL-AGENT v4.2 (Self-Optimising Scraping Engine)")
+        async with ResilientClient(use_curl_cffi=True, countries=["US", "GB"], use_redis=False) as client:
+            stats = await client.get_stats()
+            print(f"Proxy pool: {stats['proxies_total']} total, {stats['proxies_healthy']} healthy")
+            print(f"Quality scores: {stats['scores']}")
+            print(f"Adaptive rates: {stats['rates']}")
+            try:
+                resp = await client.request("GET", "https://api.github.com/users/octocat")
+                print(f"✅ Success! Status: {resp.status}, content length: {len(resp.content)} bytes")
+                if resp.status == 200:
+                    data = json.loads(resp.content)
+                    print(f"   User: {data.get('login')} - {data.get('name')}")
+            except Exception as e:
+                print(f"❌ All attempts failed: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
