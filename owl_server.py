@@ -55,6 +55,12 @@ class OwlServer:
         self.client = ResilientClient(**self.client_kwargs)
         await self.client.__aenter__()
 
+        # Start plugin loader discovery
+        if self.client.plugin_loader:
+            await self.client.plugin_loader.start()
+            stats = self.client.plugin_loader.get_stats()
+            logger.info(f"🔌 Plugins loaded: {stats['total']} ({', '.join(stats['plugins'].keys()) if stats['plugins'] else 'none'})")
+
         # API server (port 60000)
         app = web.Application()
         app.router.add_post("/fetch", self.handle_fetch)

@@ -77,10 +77,7 @@ $PIP_CMD install --quiet \
     circuitbreaker \
     curl_cffi \
     redis \
-    prometheus-client \
-    turndown \
-    beautifulsoup4 \
-    markdownify
+    prometheus-client
 
 log_info "Installing v4.5 ML dependencies..."
 $PIP_CMD install --quiet \
@@ -243,7 +240,6 @@ CFGEOF
 log_step "Creating sample plugin..."
 cat > "$OWL_HOME/plugins/example_logger.py" << 'PLUGEOF'
 """Example plugin: logs all requests and responses."""
-import time
 import logging
 
 logger = logging.getLogger("owl-agent.plugin.example")
@@ -317,10 +313,9 @@ fi
 # --- Test the installation ---
 log_step "Testing OWL-AGENT installation..."
 if "$PYTHON_CMD" -c "
-from proxy_defense import PluginManager, ABTestManager, AdvancedMLPredictor, SKLEARN_AVAILABLE
-print(f'  PluginManager: OK')
-print(f'  ABTestManager: OK')
-print(f'  AdvancedMLPredictor: OK (sklearn={SKLEARN_AVAILABLE})')
+from proxy_defense import PluginManager, ABTestManager
+print('  PluginManager: OK')
+print('  ABTestManager: OK')
 try:
     from ml_models import AdvancedMLPredictor, XGB_AVAILABLE
     print(f'  AdvancedMLPredictor: OK (xgboost={XGB_AVAILABLE})')

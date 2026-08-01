@@ -67,7 +67,8 @@ mkdir -p ~/.owl-agent/{cache/http,cache/models,config,plugins}
 
 # Install Python dependencies
 pip install httpx[socks] aiohttp aiofiles proxybroker2 litproxy resilient-httpx \
-    circuitbreaker curl_cffi redis prometheus-client scikit-learn numpy xgboost joblib watchdog
+    circuitbreaker curl_cffi redis prometheus-client \
+    scikit-learn numpy xgboost joblib watchdog
 
 # Copy files
 cp proxy_defense.py ml_models.py plugin_loader.py owl_server.py ~/.owl-agent/
@@ -155,6 +156,8 @@ Endpoints:
 
 #### POST /fetch
 
+**Request:**
+
 ```json
 {
     "url": "https://example.com",
@@ -164,6 +167,26 @@ Endpoints:
     "timeout": 30
 }
 ```
+
+**Response:**
+
+```json
+{
+    "status": 200,
+    "content": "<!DOCTYPE html>...",
+    "headers": {"Content-Type": "text/html"},
+    "latency_seconds": 1.234,
+    "cached": false
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | int | HTTP status code |
+| `content` | string | Response body |
+| `headers` | object | Response headers |
+| `latency_seconds` | float | Request duration |
+| `cached` | bool | Whether response was served from cache |
 
 ---
 
@@ -229,7 +252,6 @@ Plugins live in `~/.owl-agent/plugins/`. Each `.py` file is a plugin.
 ```python
 # ~/.owl-agent/plugins/my_logger.py
 """Logs all requests with timing information."""
-import time
 import logging
 
 logger = logging.getLogger("owl-agent.plugin.my_logger")
@@ -407,7 +429,7 @@ export OWL_LOG_LEVEL=INFO
 | Cline | Brings 50+ proxy sources + plugin system |
 | Cursor | Adds adaptive rate limiting + A/B testing |
 | Warp | Drop-in HTTP client with advanced ML |
-| Codebuff | Adds quality scoring + XGBoost predictor |
+| Codebuff | Adds quality scoring + advanced ML |
 | Claude Code | Supports SOCKS5 + curl_cffi + plugins |
 | Codex | Has LRU + disk cache + model persistence |
 | Antigravity | Adds country filtering + feature engineering |

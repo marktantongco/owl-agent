@@ -1,5 +1,4 @@
 """Example plugin: logs all requests and responses."""
-import time
 import logging
 
 logger = logging.getLogger("owl-agent.plugin.example")

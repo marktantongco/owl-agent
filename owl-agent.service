@@ -1,5 +1,5 @@
 [Unit]
-Description=🦉 OWL-AGENT v4.2 — Self-Optimising Proxy HTTP Client & Metrics Server
+Description=🦉 OWL-AGENT v4.5 — Advanced ML + Self-Healing Plugins
 Documentation=https://github.com/your-org/owl-agent
 After=network.target
 Wants=redis.service
@@ -19,7 +19,11 @@ ExecStart=/home/ubuntu/.owl-agent/venv/bin/python /home/ubuntu/.owl-agent/owl_se
     --host 0.0.0.0 \
     --api-port 60000 \
     --metrics-port 9091 \
-    --countries US GB PH
+    --countries US GB PH \
+    --ab-test \
+    --ml \
+    --ml-model auto \
+    --plugin-dir /home/ubuntu/.owl-agent/plugins
 
 Restart=always
 RestartSec=10

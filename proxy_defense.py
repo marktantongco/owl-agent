@@ -1097,9 +1097,8 @@ class ResilientClient:
             proxy_url = None
             try:
                 # Select proxy (via AB test / ML / scorer)
-                proxy_url = kwargs.get('proxy_url') or await self._get_best_proxy(domain)
-                if proxy_url:
-                    kwargs['proxy_url'] = proxy_url
+                proxy_url = await self._get_best_proxy(domain)
+                # Note: proxy_url is NOT added to kwargs to avoid leaking it to httpx/aiohttp
 
                 # v4.3: Run request hooks
                 await self.plugin_manager.run_hooks("request", method=method, url=url,
