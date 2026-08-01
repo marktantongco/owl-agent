@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.cache/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+*.joblib
+proxy_predictor.joblib
+cache/
+.env
