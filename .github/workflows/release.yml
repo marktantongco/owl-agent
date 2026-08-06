@@ -34,19 +34,16 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22.x"
+          go-version: "1.24.x"
 
-      - name: Build and rename owl-prox5 for platform
+      - name: Build owl-prox5 for platform
         id: build
         shell: bash
         run: |
           bash proxies/prox5/build.sh
           GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
           EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
-          ASSET="owl-prox5-$GOOS-$GOARCH$EXT"
-          mv "proxies/bin/owl-prox5$EXT" "proxies/bin/$ASSET"
-          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
-          echo "✅ Produced $ASSET (version $VERSION)"
+          echo "asset=owl-prox5-$GOOS-$GOARCH$EXT" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -71,24 +68,21 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22.x"
+          go-version: "1.24.x"
 
       - name: Vet and test
         shell: bash
         run: |
-          cd proxies/https_proxy_go && go vet ./... && go test ./... -v
+          cd proxies/https_proxy_go && go vet ./... && go test -count=1 ./...
 
-      - name: Build and rename https_proxy_go for platform
+      - name: Build https_proxy_go for platform
         id: build
         shell: bash
         run: |
           bash proxies/https_proxy_go/build.sh
           GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
           EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
-          ASSET="https_proxy_go-$GOOS-$GOARCH$EXT"
-          mv "proxies/bin/https_proxy_go$EXT" "proxies/bin/$ASSET"
-          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
-          echo "✅ Produced $ASSET (version $VERSION)"
+          echo "asset=https_proxy_go-$GOOS-$GOARCH$EXT" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

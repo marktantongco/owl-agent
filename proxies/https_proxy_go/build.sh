@@ -14,9 +14,14 @@ mkdir -p ../bin
 # Version stamping: VERSION env wins, else nearest git tag, else "dev".
 VERSION="${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}"
 
-go mod tidy
-go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o ../bin/https_proxy_go .
+# Platform-qualified asset name (e.g. https_proxy_go-darwin-arm64, https_proxy_go-windows-amd64.exe).
+GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
+EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
+ASSET="https_proxy_go-$GOOS-$GOARCH$EXT"
 
-echo "✅ Built proxies/bin/https_proxy_go (version $VERSION)"
+go mod tidy
+go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o "../bin/$ASSET" .
+
+echo "✅ Built proxies/bin/$ASSET (version $VERSION)"
 echo "   Configure: cp proxies/https_proxy_go/config.example.yaml config.yaml"
-echo "   Run:       proxies/bin/https_proxy_go run --config config.yaml"
+echo "   Run:       proxies/bin/$ASSET run --config config.yaml"

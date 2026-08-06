@@ -29,7 +29,7 @@ mkdir -p "$DIR"
 cp -r "$ROOT/proxies/prox5/." "$DIR/"
 cd "$DIR"
 sed -i 's|module github.com/marktantongco/owl-agent/proxies/prox5|module github.com/marktantongco/owl-prox5|' go.mod
-sed -i 's|mkdir -p ../bin|mkdir -p bin|; s|-o ../bin/owl-prox5|-o bin/owl-prox5|; s|proxies/bin/owl-prox5|bin/owl-prox5|g; s|bash run.sh prox5 -listen|./bin/owl-prox5 -listen|g' build.sh
+sed -i 's|\.\./bin|bin|g; s|proxies/bin|bin|g; s|bash run.sh prox5 -listen|./bin/owl-prox5 -listen|g' build.sh
 sed -i 's|bash proxies/build.sh|bash build.sh|; s|bash proxies/prox5/build.sh|bash build.sh|; s|bash run.sh prox5 -listen|./bin/owl-prox5 -listen|g' README.md
 printf 'bin/\n' > .gitignore
 go mod tidy
@@ -48,7 +48,7 @@ mkdir -p "$DIR"
 cp -r "$ROOT/proxies/https_proxy_go/." "$DIR/"
 cd "$DIR"
 sed -i 's|module github.com/marktantongco/owl-agent/proxies/https_proxy_go|module github.com/marktantongco/owl-https-proxy|' go.mod
-sed -i 's|mkdir -p ../bin|mkdir -p bin|; s|-o ../bin/https_proxy_go|-o bin/https_proxy_go|; s|proxies/bin/https_proxy_go|bin/https_proxy_go|g; s|cp proxies/https_proxy_go/config.example.yaml config.yaml|cp config.example.yaml config.yaml|' build.sh
+sed -i 's|\.\./bin|bin|g; s|proxies/bin|bin|g; s|cp proxies/https_proxy_go/config.example.yaml config.yaml|cp config.example.yaml config.yaml|' build.sh
 sed -i 's|bash proxies/build.sh|bash build.sh|; s|bash proxies/https_proxy_go/build.sh|bash build.sh|; s|proxies/bin/https_proxy_go|bin/https_proxy_go|g; s|proxies/https_proxy_go/config.example.yaml|config.example.yaml|g' README.md
 printf 'bin/\n' > .gitignore
 go mod tidy

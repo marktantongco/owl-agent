@@ -14,8 +14,13 @@ mkdir -p ../bin
 # Version stamping: VERSION env wins, else nearest git tag, else "dev".
 VERSION="${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}"
 
-go mod tidy
-go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o ../bin/owl-prox5 .
+# Platform-qualified asset name (e.g. owl-prox5-linux-amd64, owl-prox5-windows-amd64.exe).
+GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
+EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
+ASSET="owl-prox5-$GOOS-$GOARCH$EXT"
 
-echo "✅ Built proxies/bin/owl-prox5 (version $VERSION)"
+go mod tidy
+go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o "../bin/$ASSET" .
+
+echo "✅ Built proxies/bin/$ASSET (version $VERSION)"
 echo "   Run: bash run.sh prox5 -listen 127.0.0.1:42069 -file proxies.txt"
