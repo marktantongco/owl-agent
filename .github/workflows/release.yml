@@ -230,8 +230,21 @@ jobs:
           python -m pip install --upgrade pip build
           python -m build
 
-      - name: Publish to PyPI (Trusted Publishing or PYPI_API_TOKEN)
+      - name: Check PyPI API token is configured
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$PYPI_API_TOKEN" ]; then
+            echo "❌ PYPI_API_TOKEN secret is not set on this repository."
+            echo "   Add it at Settings → Secrets and variables → Actions"
+            echo "   using a PyPI API token from https://pypi.org/manage/account/token/"
+            exit 1
+          fi
+          echo "✅ PYPI_API_TOKEN secret is configured."
+
+      - name: Publish to PyPI (API token)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          username: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
