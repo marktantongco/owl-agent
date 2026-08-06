@@ -1,10 +1,12 @@
 # Creates a GitHub Release with the prebuilt proxy binaries when a v* tag is
 # pushed. Can also be triggered manually (builds only, no release is created).
 #
-# Cross-platform: the Go binaries are built natively on Linux, Windows and
-# macOS. The upstream Rust https_proxy is Unix-only (uses std::os::unix and
-# TCP_FASTOPEN in src/net.rs), so it is built on Linux and macOS only. Every
-# asset is named after the platform it was built for (e.g.
+# Cross-platform: the Go binaries are built for linux-amd64, linux-arm64,
+# windows-amd64 and darwin-arm64. arm64 cross-builds (and all release
+# binaries) use CGO_ENABLED=0 so assets are fully static. The upstream Rust
+# https_proxy is Unix-only (uses std::os::unix and TCP_FASTOPEN in
+# src/net.rs), so it is built on Linux and macOS only. Every asset is named
+# after the platform it was built for (e.g. owl-prox5-linux-arm64,
 # owl-prox5-windows-amd64.exe, https_proxy-aarch64-apple-darwin).
 name: Release
 
@@ -19,14 +21,28 @@ permissions:
 
 jobs:
   build-prox5:
-    name: Build owl-prox5 (${{ matrix.os }})
+    name: Build owl-prox5 (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - target: linux-amd64
+            os: ubuntu-latest
+            goarch: amd64
+          - target: linux-arm64
+            os: ubuntu-latest
+            goarch: arm64
+          - target: windows-amd64
+            os: windows-latest
+            goarch: amd64
+          - target: darwin-arm64
+            os: macos-latest
+            goarch: arm64
     env:
       VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+      GOARCH: ${{ matrix.goarch }}
+      CGO_ENABLED: "0"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,14 +69,28 @@ jobs:
           if-no-files-found: error
 
   build-https-proxy-go:
-    name: Build https_proxy_go (${{ matrix.os }})
+    name: Build https_proxy_go (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - target: linux-amd64
+            os: ubuntu-latest
+            goarch: amd64
+          - target: linux-arm64
+            os: ubuntu-latest
+            goarch: arm64
+          - target: windows-amd64
+            os: windows-latest
+            goarch: amd64
+          - target: darwin-arm64
+            os: macos-latest
+            goarch: arm64
     env:
       VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+      GOARCH: ${{ matrix.goarch }}
+      CGO_ENABLED: "0"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -70,8 +100,9 @@ jobs:
         with:
           go-version: "1.24.x"
 
-      - name: Vet and test
+      - name: Vet and test (native arch only)
         shell: bash
+        if: matrix.goarch == 'amd64'
         run: |
           cd proxies/https_proxy_go && go vet ./... && go test -count=1 ./...
 
