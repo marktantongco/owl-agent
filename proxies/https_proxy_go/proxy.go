@@ -12,14 +12,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
 
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
-	"golang.org/x/sys/unix"
 )
 
 // ProxyServer implements the stealth forward proxy.
@@ -249,20 +247,11 @@ func gracefulShutdown(srv *http.Server) {
 	_ = srv.Shutdown(ctx)
 }
 
-// listenWithConfig enables TCP Fast Open when requested (Linux/macOS only).
+// listenWithConfig enables TCP Fast Open when requested and supported by the
+// platform (see fastopen_unix.go / fastopen_other.go).
 func listenWithConfig(cfg *Config) (net.Listener, error) {
-	if !cfg.Stealth.FastOpen || (runtime.GOOS != "linux" && runtime.GOOS != "darwin") {
+	if !cfg.Stealth.FastOpen {
 		return net.Listen("tcp", cfg.Listen)
 	}
-	lc := net.ListenConfig{}
-	lc.Control = func(network, address string, c syscall.RawConn) error {
-		var opErr error
-		if err := c.Control(func(fd uintptr) {
-			opErr = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, unix.TCP_FASTOPEN, 5)
-		}); err != nil {
-			return err
-		}
-		return opErr
-	}
-	return lc.Listen(context.Background(), "tcp", cfg.Listen)
+	return fastOpenListener(cfg.Listen)
 }

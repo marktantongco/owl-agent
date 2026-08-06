@@ -1,5 +1,11 @@
 # Creates a GitHub Release with the prebuilt proxy binaries when a v* tag is
 # pushed. Can also be triggered manually (builds only, no release is created).
+#
+# Cross-platform: the Go binaries are built natively on Linux, Windows and
+# macOS. The upstream Rust https_proxy is Unix-only (uses std::os::unix and
+# TCP_FASTOPEN in src/net.rs), so it is built on Linux and macOS only. Every
+# asset is named after the platform it was built for (e.g.
+# owl-prox5-windows-amd64.exe, https_proxy-aarch64-apple-darwin).
 name: Release
 
 on:
@@ -13,8 +19,12 @@ permissions:
 
 jobs:
   build-prox5:
-    name: Build prox5 (Go)
-    runs-on: ubuntu-latest
+    name: Build owl-prox5 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
@@ -26,20 +36,32 @@ jobs:
         with:
           go-version: "1.22.x"
 
-      - name: Build owl-prox5
+      - name: Build and rename owl-prox5 for platform
+        id: build
+        shell: bash
         run: |
           bash proxies/prox5/build.sh
+          GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
+          EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
+          ASSET="owl-prox5-$GOOS-$GOARCH$EXT"
+          mv "proxies/bin/owl-prox5$EXT" "proxies/bin/$ASSET"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          echo "✅ Produced $ASSET (version $VERSION)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: owl-prox5
-          path: proxies/bin/owl-prox5
+          name: ${{ steps.build.outputs.asset }}
+          path: proxies/bin/${{ steps.build.outputs.asset }}
           if-no-files-found: error
 
   build-https-proxy-go:
-    name: Build https_proxy (Go port)
-    runs-on: ubuntu-latest
+    name: Build https_proxy_go (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     env:
       VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
@@ -52,23 +74,37 @@ jobs:
           go-version: "1.22.x"
 
       - name: Vet and test
+        shell: bash
         run: |
           cd proxies/https_proxy_go && go vet ./... && go test ./... -v
 
-      - name: Build https_proxy_go
+      - name: Build and rename https_proxy_go for platform
+        id: build
+        shell: bash
         run: |
           bash proxies/https_proxy_go/build.sh
+          GOOS="$(go env GOOS)"; GOARCH="$(go env GOARCH)"
+          EXT=""; [ "$GOOS" = "windows" ] && EXT=".exe"
+          ASSET="https_proxy_go-$GOOS-$GOARCH$EXT"
+          mv "proxies/bin/https_proxy_go$EXT" "proxies/bin/$ASSET"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          echo "✅ Produced $ASSET (version $VERSION)"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: https_proxy_go
-          path: proxies/bin/https_proxy_go
+          name: ${{ steps.build.outputs.asset }}
+          path: proxies/bin/${{ steps.build.outputs.asset }}
           if-no-files-found: error
 
   build-https-proxy-rust:
-    name: Build https_proxy (upstream Rust)
-    runs-on: ubuntu-latest
+    name: Build https_proxy (upstream Rust, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Unix-only upstream (std::os::unix, TCP_FASTOPEN) — no Windows build.
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,15 +112,22 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build upstream https_proxy
+      - name: Build and rename upstream https_proxy for platform
+        id: build
+        shell: bash
         run: |
           bash proxies/https_proxy/build.sh
+          HOST="$(rustc -vV | sed -n 's/^host: //p')"
+          ASSET="https_proxy-$HOST"
+          mv proxies/bin/https_proxy "proxies/bin/$ASSET"
+          echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
+          echo "✅ Produced $ASSET"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: https_proxy
-          path: proxies/bin/https_proxy
+          name: ${{ steps.build.outputs.asset }}
+          path: proxies/bin/${{ steps.build.outputs.asset }}
           if-no-files-found: error
 
   release:
@@ -97,6 +140,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: List artifacts
+        run: |
+          find artifacts -type f | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
