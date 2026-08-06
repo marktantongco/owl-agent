@@ -123,27 +123,45 @@ jobs:
           if-no-files-found: error
 
   build-https-proxy-rust:
-    name: Build https_proxy (upstream Rust, ${{ matrix.os }})
+    name: Build https_proxy (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         # Unix-only upstream (std::os::unix, TCP_FASTOPEN) — no Windows build.
-        os: [ubuntu-latest, macos-latest]
+        # aarch64-unknown-linux-gnu is cross-compiled on the ubuntu runner
+        # (ring needs a C compiler, so we install the aarch64 cross GCC).
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: aarch64-apple-darwin
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
-      - name: Build and rename upstream https_proxy for platform
+      - name: Install cross C toolchain (linux arm64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build upstream https_proxy for ${{ matrix.target }}
         id: build
         shell: bash
+        env:
+          CARGO_BUILD_TARGET: ${{ matrix.target }}
+          CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
         run: |
           bash proxies/https_proxy/build.sh
-          HOST="$(rustc -vV | sed -n 's/^host: //p')"
-          ASSET="https_proxy-$HOST"
+          ASSET="https_proxy-${{ matrix.target }}"
           mv proxies/bin/https_proxy "proxies/bin/$ASSET"
           echo "asset=$ASSET" >> "$GITHUB_OUTPUT"
           echo "✅ Produced $ASSET"
@@ -151,8 +169,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.asset }}
-          path: proxies/bin/${{ steps.build.outputs.asset }}
+          name: ${{ matrix.target }}
+          path: proxies/bin/https_proxy-${{ matrix.target }}
           if-no-files-found: error
 
   release:

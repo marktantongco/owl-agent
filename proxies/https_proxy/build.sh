@@ -20,7 +20,13 @@ fi
 mkdir -p "$BIN_DIR"
 cd "$SRC_DIR"
 cargo build --release
-cp -f target/release/https_proxy "$BIN_DIR/https_proxy"
+# With CARGO_BUILD_TARGET set (cross-compiles), the binary lands in
+# target/<target>/release/ instead of target/release/.
+if [ -n "${CARGO_BUILD_TARGET:-}" ]; then
+  cp -f "target/$CARGO_BUILD_TARGET/release/https_proxy" "$BIN_DIR/https_proxy"
+else
+  cp -f target/release/https_proxy "$BIN_DIR/https_proxy"
+fi
 
 echo "✅ Built proxies/bin/https_proxy"
 echo "   Configure: cp proxies/https_proxy/config.example.yaml proxies/https_proxy/config.yaml"
