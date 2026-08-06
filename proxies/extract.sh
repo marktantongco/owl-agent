@@ -18,6 +18,25 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Use the injected GitHub App token (GH_TOKEN) when present so pushes to the
+# standalone repos authenticate even though the git wrapper only injects the
+# credential into direct git invocations, not ones run inside this script.
+# (Never echoes the token; it only flows into the Authorization header.)
+if [ -n "${GH_TOKEN:-}" ]; then
+  # Only add our own Authorization header if the environment hasn't already
+  # injected one (a duplicate header makes GitHub reject the push with 400).
+  if ! command git config --get http.https://github.com/.extraheader >/dev/null 2>&1; then
+    AUTH_HEADER="Authorization: Basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+    git() {
+      if [ "${1:-}" = "push" ]; then
+        command git -c "http.https://github.com/.extraheader=$AUTH_HEADER" "$@"
+      else
+        command git "$@"
+      fi
+    }
+  fi
+fi
+
 if ! command -v go >/dev/null 2>&1; then
   echo "❌ Go not installed (required to validate the modules before pushing)."
   exit 1
