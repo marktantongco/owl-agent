@@ -125,7 +125,7 @@ server = MCPServer()
 
 # Import OWL-AGENT
 sys.path.insert(0, "/home/ubuntu/.owl-agent")
-from proxy_defense import ResilientClient
+from proxy_defense import ResilientClient  # noqa: E402  (late import: needs sys.path above)
 
 # Client instance
 _client = None

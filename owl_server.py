@@ -11,16 +11,14 @@ Wraps ResilientClient in a production async HTTP server.
 """
 
 import asyncio
-import json
 import os
 import time
-import logging
 from typing import Optional
 
 from aiohttp import web
 
 # Prometheus metrics
-from prometheus_client import Counter, Gauge, Histogram, generate_latest, REGISTRY, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, Gauge, Histogram, generate_latest, REGISTRY
 
 from proxy_defense import ResilientClient, CachedResponse, logger
 

@@ -25,7 +25,7 @@ OWL_DIR = Path(__file__).resolve().parent.parent
 if str(OWL_DIR) not in sys.path:
     sys.path.insert(0, str(OWL_DIR))
 
-import proxy_defense as pd
+import proxy_defense as pd  # noqa: E402  (deliberate: repo-root sys.path bootstrap above)
 
 
 # ═══════════════════════════════════════════════════════════════════

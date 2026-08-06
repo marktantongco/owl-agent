@@ -64,7 +64,7 @@ def test_owl_agent_import():
     print("\n🦉 Testing OWL-AGENT Import...")
 
     try:
-        from proxy_defense import (
+        from proxy_defense import (  # noqa: F401  (import-existence check: names intentionally unused)
             ResilientClient,
             HTTPCache,
             RequestDeduplicator,

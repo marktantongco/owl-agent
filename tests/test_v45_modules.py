@@ -10,16 +10,11 @@ Tests cover:
 """
 
 import asyncio
-import importlib
-import importlib.util
 import inspect
-import os
 import sys
 import time
-import tempfile
-import shutil
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
