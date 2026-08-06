@@ -7,7 +7,7 @@ Model Context Protocol server for Cline integration
 import asyncio
 import json
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 # MCP Protocol implementation
 class MCPServer:
