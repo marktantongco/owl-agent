@@ -158,7 +158,10 @@ jobs:
         shell: bash
         env:
           CARGO_BUILD_TARGET: ${{ matrix.target }}
+          # aws-lc-sys (via tokio-rustls-acme) needs BOTH the C compiler and
+          # the linker pointed at the cross toolchain for aarch64-unknown-linux-gnu.
           CC_aarch64_unknown_linux_gnu: aarch64-linux-gnu-gcc
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: |
           bash proxies/https_proxy/build.sh
           ASSET="https_proxy-${{ matrix.target }}"
