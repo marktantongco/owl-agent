@@ -1,6 +1,6 @@
 module owl-prox5
 
-go 1.22
+go 1.25.0
 
 require git.tcp.direct/kayos/prox5 v1.3.0
 
@@ -14,8 +14,8 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/yunginnanet/Rate5 v1.3.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
 	nullprogram.com/x/rng v1.1.0 // indirect
 )
