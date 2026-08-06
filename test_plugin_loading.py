@@ -11,7 +11,7 @@ from proxy_defense import PluginManager
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 
-async def test():
+async def _smoke_test():  # standalone smoke script, not a pytest test (see tests/test_v45_modules.py)
     print("=" * 60)
     print("OWL-AGENT v4.5 — Plugin Loading Test")
     print("=" * 60)
@@ -88,4 +88,4 @@ async def test():
     print("   Enable/disable: working")
     print("=" * 60)
 
-asyncio.run(test())
+asyncio.run(_smoke_test())

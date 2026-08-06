@@ -142,7 +142,7 @@ def test_executable():
         print_status("error", "run.sh is not executable", "error")
         return False
 
-async def test_basic_functionality():
+async def _basic_functionality_check():  # standalone installation script, not a pytest test (see tests/)
     """Test basic functionality of ResilientClient."""
     print("\n⚡ Testing Basic Functionality...")
 
@@ -175,7 +175,7 @@ async def main():
     results.append(("Directories", test_directories()))
     results.append(("Files", test_files()))
     results.append(("Executable", test_executable()))
-    results.append(("Basic Functionality", await test_basic_functionality()))
+    results.append(("Basic Functionality", await _basic_functionality_check()))
 
     # Print summary
     print("\n" + "=" * 60)

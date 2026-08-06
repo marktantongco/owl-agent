@@ -10,7 +10,7 @@ sys.path.insert(0, '/home/ubuntu/.owl-agent')
 from proxy_defense import ResilientClient
 
 
-async def test():
+async def _e2e_smoke():  # standalone live-e2e script, not a pytest test (see tests/)
     print("1. Creating ResilientClient with ML + AB + Plugins enabled...")
     async with ResilientClient(
         use_curl_cffi=False,
@@ -75,4 +75,4 @@ async def test():
 
 
 if __name__ == "__main__":
-    asyncio.run(test())
+    asyncio.run(_e2e_smoke())
