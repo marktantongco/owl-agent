@@ -1,0 +1,20 @@
+# https_proxy_go (Go port of madeye/https_proxy) — copy to config.yaml and edit.
+#
+# TLS (Let's Encrypt) mode — needs a public domain and a DNS record pointing
+# at this host:
+listen: "0.0.0.0:443"
+domain: "proxy.example.com"
+acme:
+  email: "admin@example.com"
+  staging: false
+  cache_dir: "/var/lib/https_proxy/acme"
+users:
+  - username: "alice"
+    password: "hunter2"
+stealth:
+  server_name: "nginx/1.24.0"
+  fast_open: true
+
+# Plain HTTP proxy mode (no TLS, no ACME) — set domain to "" for local/dev:
+#   domain: ""
+#   listen: "127.0.0.1:8080"

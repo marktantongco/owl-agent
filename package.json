@@ -4,10 +4,10 @@
   "description": "Self-optimising HTTP scraping engine with 50+ proxy sources, quality scoring, adaptive rate limiting, and Chrome fingerprinting",
   "main": "proxy_defense.py",
   "scripts": {
-    "start": "~/.owl-agent/run.sh serve",
-    "test": "~/.owl-agent/run.sh test",
-    "fetch": "~/.owl-agent/run.sh fetch",
-    "stats": "~/.owl-agent/run.sh stats"
+    "start": "bash run.sh server",
+    "test": "venv/bin/python -m pytest -q",
+    "fetch": "bash run.sh fetch",
+    "stats": "bash run.sh status"
   },
   "keywords": [
     "scraping",

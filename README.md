@@ -26,6 +26,27 @@ curl -sSL https://raw.githubusercontent.com/your-org/owl-agent/main/install.sh |
 
 ---
 
+## Development (Makefile)
+
+When working from a checkout (no `~/.owl-agent` install needed):
+
+```bash
+make setup         # create venv/ and install Python dependencies
+make test          # run the full pytest suite
+make server        # start the HTTP API server (binds 0.0.0.0, honors $PORT)
+make fetch URL=https://example.com   # one-shot fetch via the running server
+make stats         # show proxy pool stats
+make go-test       # run Go tests for the https_proxy Go port
+make go-build      # build the Go proxy binaries (prox5 + https_proxy_go)
+make build-proxies # build all proxy integrations (needs Go 1.22+ and Rust 1.70+)
+make lint          # ruff lint (Python)
+make help          # list all targets
+```
+
+`make server` is equivalent to `bash run.sh server --host 0.0.0.0 --api-port $PORT`.
+
+---
+
 ## Features
 
 | Feature | Description |
@@ -309,7 +330,16 @@ export OWL_REDIS_ENABLED=false
 
 # Logging
 export OWL_LOG_LEVEL=INFO
+
+# Self-hosted proxy integrations (prox5 SOCKS5 server, madeye/https_proxy)
+export OWL_EXTRA_PROXIES="socks5://127.0.0.1:42069,https://user:pass@proxy.example.com:443"
+# …or the convenience aliases:
+export OWL_PROX5_SOCKS5="127.0.0.1:42069"
+export OWL_HTTPS_PROXY="https://user:pass@proxy.example.com:443"
 ```
+
+> These variables are read at startup and act as **defaults** — explicit CLI
+> flags and constructor arguments always take precedence.
 
 ### Config File
 
@@ -330,6 +360,35 @@ export OWL_LOG_LEVEL=INFO
     "plugin_dir": "~/.owl-agent/plugins"
 }
 ```
+
+---
+
+## Proxy Integrations (prox5 & https_proxy)
+
+OWL-AGENT can use **self-hosted proxy servers** as first-class pool entries —
+run your own rotating SOCKS5 exit ([prox5](https://github.com/yunginnanet/prox5))
+and/or a stealth HTTPS forward proxy ([https_proxy](https://github.com/madeye/https_proxy))
+and wire them in with one env var. See [`proxies/README.md`](proxies/README.md).
+
+```bash
+# Build (needs Go 1.21+ and Rust 1.70+ on your machine)
+bash proxies/build.sh
+
+# Run prox5 (SOCKS5 on 127.0.0.1:42069)
+bash run.sh prox5 -listen 127.0.0.1:42069 -file proxies.txt
+
+# Point OWL-AGENT at them
+bash run.sh server --extra-proxies "socks5://127.0.0.1:42069,https://user:pass@proxy.example.com:443"
+```
+
+| Variable | Effect |
+|---|---|
+| `OWL_EXTRA_PROXIES` | Comma-separated proxy URLs seeded into the pool |
+| `OWL_PROX5_SOCKS5` | Convenience alias → adds a `socks5://` entry |
+| `OWL_HTTPS_PROXY` | Convenience alias → adds an `https://` entry |
+
+Seeded proxies are quality-scored like any other pool entry, so HTTPS traffic
+tunnels through them via CONNECT instead of falling back to a direct connection.
 
 ---
 

@@ -1,0 +1,101 @@
+# Creates a GitHub Release with the prebuilt proxy binaries when a v* tag is
+# pushed. Can also be triggered manually (builds only, no release is created).
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-prox5:
+    name: Build prox5 (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Build owl-prox5
+        run: |
+          bash proxies/prox5/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: owl-prox5
+          path: proxies/bin/owl-prox5
+          if-no-files-found: error
+
+  build-https-proxy-go:
+    name: Build https_proxy (Go port)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Vet and test
+        run: |
+          cd proxies/https_proxy_go && go vet ./... && go test ./... -v
+
+      - name: Build https_proxy_go
+        run: |
+          bash proxies/https_proxy_go/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: https_proxy_go
+          path: proxies/bin/https_proxy_go
+          if-no-files-found: error
+
+  build-https-proxy-rust:
+    name: Build https_proxy (upstream Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build upstream https_proxy
+        run: |
+          bash proxies/https_proxy/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: https_proxy
+          path: proxies/bin/https_proxy
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: [build-prox5, build-https-proxy-go, build-https-proxy-rust]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

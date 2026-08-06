@@ -1,4 +1,4 @@
-# OWL-AGENT CI — Runs pytest on every push/PR
+# OWL-AGENT CI — lint + full pytest suite on every push/PR
 name: CI
 
 on:
@@ -40,6 +40,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+    env:
+      OWL_TEST_MODE: "1"
 
     steps:
       - name: Checkout repository
@@ -68,28 +70,15 @@ jobs:
       - name: Verify critical imports
         run: |
           python -c "
-          import aiohttp, httpx, curl_cffi, circuitbreaker, proxybroker
+          import aiohttp, httpx, curl_cffi, circuitbreaker, proxybroker2
           print('Core imports OK')
           import sklearn, numpy
           print(f'ML imports OK (scikit-learn={sklearn.__version__}, numpy={numpy.__version__})')
           "
         working-directory: .
 
-      - name: Run unit tests
-        run: |
-          python -m pytest tests/test_v45_modules.py -v --tb=short -x
-        working-directory: .
-
-      - name: Run integration tests
-        run: |
-          python -m pytest tests/test_integration_e2e.py -v --tb=short -x
-        working-directory: .
-        env:
-          OWL_TEST_MODE: "1"
-        timeout-minutes: 10
-
-      - name: Run all tests (summary)
-        if: always()
+      - name: Run full test suite
         run: |
           python -m pytest tests/ -v --tb=short
         working-directory: .
+        timeout-minutes: 15

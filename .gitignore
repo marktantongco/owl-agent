@@ -12,3 +12,7 @@ venv/
 proxy_predictor.joblib
 cache/
 .env
+
+# Proxy build outputs
+proxies/bin/
+proxies/https_proxy_go/https_proxy_go

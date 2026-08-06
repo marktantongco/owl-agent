@@ -3,8 +3,7 @@
 httpx[socks]>=0.25.0
 aiohttp>=3.9.0
 aiofiles>=23.0.0
-proxybroker2>=0.4.0
-litproxy>=0.1.0
+proxybroker2>=2.0.0a4  # only release on PyPI is the 2.0.0a4 pre-release
 resilient-httpx>=0.1.0
 circuitbreaker>=2.0.0
 curl_cffi>=0.5.0

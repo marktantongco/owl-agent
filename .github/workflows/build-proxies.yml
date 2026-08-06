@@ -1,0 +1,89 @@
+# Builds the bundled proxy integrations on push/PR that touch proxies/.
+# Artifacts are uploaded so they can be grabbed for deployment.
+name: Build proxy integrations
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "proxies/**"
+  pull_request:
+    paths:
+      - "proxies/**"
+  workflow_dispatch:
+
+jobs:
+  prox5:
+    name: Build prox5 (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Vet
+        run: |
+          cd proxies/prox5 && go vet ./...
+
+      - name: Build owl-prox5
+        run: |
+          bash proxies/prox5/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: owl-prox5
+          path: proxies/bin/owl-prox5
+          if-no-files-found: error
+
+  https-proxy-go:
+    name: Build https_proxy (Go port)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Vet and test
+        run: |
+          cd proxies/https_proxy_go && go vet ./... && go test ./... -v
+
+      - name: Build https_proxy_go
+        run: |
+          bash proxies/https_proxy_go/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: https_proxy_go
+          path: proxies/bin/https_proxy_go
+          if-no-files-found: error
+
+  https-proxy-rust:
+    name: Build https_proxy (upstream Rust)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build upstream https_proxy
+        run: |
+          bash proxies/https_proxy/build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: https_proxy
+          path: proxies/bin/https_proxy
+          if-no-files-found: error

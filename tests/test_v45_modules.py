@@ -634,7 +634,7 @@ def on_response(response, **kwargs):
         pm = PluginManager()
         results = []
         pm.register("request", lambda **kw: results.append("static"))
-        asyncio.get_event_loop().run_until_complete(pm.run_hooks("request"))
+        asyncio.run(pm.run_hooks("request"))
         assert results == ["static"]
 
     def test_dynamic_hooks_from_loader(self, pm_with_loader):

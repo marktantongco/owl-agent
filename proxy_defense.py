@@ -26,6 +26,7 @@ import random
 import statistics
 import email.utils
 import datetime
+import os
 import sys
 import warnings
 from dataclasses import dataclass, field
@@ -104,35 +105,82 @@ try:
 except ImportError:
     PluginLoader = None
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+logger = logging.getLogger("owl-agent.proxy")
+
+# ─── Environment helpers ────────────────────────────────────────
+# The documented OWL_* environment variables are read once here and used
+# as defaults, so explicit constructor arguments / CLI flags always take
+# precedence over the environment.
+def _env(name: str, default: Optional[str] = None) -> Optional[str]:
+    value = os.getenv(name)
+    return value if value not in (None, "") else default
+
+
+def _env_int(name: str, default: int) -> int:
+    value = _env(name)
+    try:
+        return int(value) if value is not None else default
+    except ValueError:
+        logger.warning(f"Invalid {name}={value!r} — using default {default}")
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    value = _env(name)
+    try:
+        return float(value) if value is not None else default
+    except ValueError:
+        logger.warning(f"Invalid {name}={value!r} — using default {default}")
+        return default
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = _env(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def _env_list(name: str, default: Optional[List[str]] = None) -> List[str]:
+    value = _env(name)
+    if value is None:
+        return list(default) if default else []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 # ─── Paths ──────────────────────────────────────────────────────
-CACHE_DIR = Path.home() / ".owl-agent" / "cache" / "http"
+CACHE_DIR = Path(_env("OWL_CACHE_DIR", str(Path.home() / ".owl-agent" / "cache" / "http")))
 CONFIG_DIR = Path.home() / ".owl-agent" / "config"
 PROXY_CACHE_FILE = CONFIG_DIR / "proxy_cache.json"
 
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-# ─── Constants ─────────────────────────────────────────────────
-DEFAULT_TTL = 300
-DEFAULT_RATE = 1.0
+# ─── Constants (overridable via OWL_* env vars) ─────────────────
+DEFAULT_TTL = _env_int("OWL_CACHE_TTL", 300)
+DEFAULT_RATE = _env_float("OWL_RATE_LIMIT", 1.0)
 MAX_RETRIES = 3
 MAX_CACHED_RESPONSES = 1000
-MAX_PROXY_CACHE = 100
+MAX_PROXY_CACHE = _env_int("OWL_PROXY_CACHE_SIZE", 100)
 MAX_SESSIONS = 20
 MAX_DOMAINS_RATE_LIMIT = 1000
 CIRCUIT_BREAKER_FAILURE_THRESHOLD = 5
 CIRCUIT_BREAKER_RECOVERY_TIMEOUT = 30
-DEFAULT_COUNTRIES = ["US", "GB", "DE", "FR", "CA"]
+DEFAULT_COUNTRIES = _env_list("OWL_PROXY_COUNTRIES", ["US", "GB", "DE", "FR", "CA"])
 QUALITY_DECAY = 0.9
-ADAPTIVE_MIN_RATE = 0.1
-ADAPTIVE_MAX_RATE = 5.0
+ADAPTIVE_MIN_RATE = _env_float("OWL_MIN_RATE", 0.1)
+ADAPTIVE_MAX_RATE = _env_float("OWL_MAX_RATE", 5.0)
 AB_MIN_SAMPLE_SIZE = 100
 ML_MIN_SAMPLES = 20
 ML_MAX_SAMPLES = 1000
 ML_STALENESS_THRESHOLD = 0.6  # Minimum CV score to consider model valid
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
-logger = logging.getLogger("owl-agent.proxy")
+# OWL_LOG_LEVEL (or OWL_TEST_MODE=true → DEBUG) controls verbosity.
+_log_level = os.getenv("OWL_LOG_LEVEL")
+if not _log_level and _env_bool("OWL_TEST_MODE"):
+    _log_level = "DEBUG"
+logger.setLevel(getattr(logging, (_log_level or "INFO").upper(), logging.INFO))
 
 # ─── Data Classes (memory-optimised) ──────────────────────────
 @dataclass(slots=True)
@@ -400,7 +448,8 @@ class RedisStore:
 # ─── ProxyPoolManager with country filtering ──────────────────
 class ProxyPoolManager:
     def __init__(self, max_queue: int = 50, cache_file: Path = PROXY_CACHE_FILE,
-                 cache_max: int = MAX_PROXY_CACHE, countries: Optional[List[str]] = None):
+                 cache_max: int = MAX_PROXY_CACHE, countries: Optional[List[str]] = None,
+                 extra_proxies: Optional[List[str]] = None):
         self.queue: asyncio.Queue = asyncio.Queue(maxsize=max_queue)
         self._lock = asyncio.Lock()
         self._running = False
@@ -412,12 +461,24 @@ class ProxyPoolManager:
         # Broker initialized lazily in start() when we're in an async context
         self._broker = None
         self.countries = countries or DEFAULT_COUNTRIES
+        # Self-hosted / pre-configured proxies (e.g. prox5 SOCKS5 server,
+        # madeye/https_proxy forward proxy) that are always part of the pool.
+        self.extra_proxies = [p.strip() for p in (extra_proxies or []) if p and p.strip()]
 
     async def start(self):
         self._running = True
         self._load_cache()
 
-        # If no cached proxies, try to fetch from public proxy lists
+        # Seed configured extra proxies (local prox5 / https_proxy endpoints)
+        for url in self.extra_proxies:
+            if url not in self._url_set:
+                entry = ProxyEntry(url=url)
+                self._proxies.append(entry)
+                self._url_set.add(url)
+                self._url_map[url] = entry
+                logger.info(f"Extra proxy seeded into pool: {url}")
+
+        # If no cached/extra proxies, try to fetch from public proxy lists
         if not self._proxies:
             await self._fetch_public_proxies()
 
@@ -919,12 +980,13 @@ class ResilientClient:
                  enable_ab_test: bool = False,
                  enable_ml: bool = False,
                  ml_model: str = "auto",
-                 plugin_dir: str = "~/.owl-agent/plugins"):
+                 plugin_dir: str = "~/.owl-agent/plugins",
+                 extra_proxies: Optional[List[str]] = None):
         self.cache = HTTPCache(cache_ttl)
         self.dedup = RequestDeduplicator()
         self.limiter = AdaptiveRateLimiter(base_rate=rate_limit)
         self.max_retries = max_retries
-        self.pool_manager = ProxyPoolManager(countries=countries)
+        self.pool_manager = ProxyPoolManager(countries=countries, extra_proxies=extra_proxies)
         self.circuit_breakers = DomainCircuitBreaker()
         self.scorer = QualityScorer()
         self.use_curl_cffi = use_curl_cffi and CURL_CFFI_AVAILABLE

@@ -1,0 +1,14 @@
+# https_proxy configuration — copy to config.yaml and edit before running.
+# See https://github.com/madeye/https_proxy for the full reference.
+listen: "0.0.0.0:443"
+domain: "proxy.example.com"
+acme:
+  email: "admin@example.com"
+  staging: false
+  cache_dir: "/var/lib/https_proxy/acme"
+users:
+  - username: "alice"
+    password: "hunter2"
+stealth:
+  server_name: "nginx/1.24.0"
+  fast_open: true

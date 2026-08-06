@@ -19,6 +19,7 @@ USAGE:
   $0 fetch   <url> [--method GET] [--browser] [--geo US]
   $0 status
   $0 health
+  $0 prox5   [-listen 127.0.0.1:42069] [-file proxies.txt]   # local SOCKS5 (prox5)
 
 COMMANDS:
   server    Start the HTTP API + Prometheus metrics server (default)
@@ -79,6 +80,15 @@ JSON
         ;;
     health)
         curl -s http://127.0.0.1:60000/health | python3 -m json.tool
+        ;;
+    prox5)
+        # Local prox5 SOCKS5 server (see proxies/). Requires a Go build.
+        BIN="$OWL_DIR/proxies/bin/owl-prox5"
+        if [ ! -x "$BIN" ]; then
+            echo "❌ prox5 not built yet. Run: bash proxies/build.sh"
+            exit 1
+        fi
+        exec "$BIN" "$@"
         ;;
     --help|-h)
         usage

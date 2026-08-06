@@ -12,6 +12,7 @@ Wraps ResilientClient in a production async HTTP server.
 
 import asyncio
 import json
+import os
 import time
 import logging
 from typing import Optional
@@ -22,6 +23,34 @@ from aiohttp import web
 from prometheus_client import Counter, Gauge, Histogram, generate_latest, REGISTRY, CONTENT_TYPE_LATEST
 
 from proxy_defense import ResilientClient, CachedResponse, logger
+
+
+# ─── Environment helpers (module-level so they are testable) ─────
+def _env_bool(name: str, default: bool = False, getenv=os.getenv) -> bool:
+    value = getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on", "enabled")
+
+
+def _env_list(name: str, default=None, getenv=os.getenv):
+    value = getenv(name)
+    if not value:
+        return list(default or [])
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _collect_extra_proxies(environ=None) -> list:
+    """Merge OWL_EXTRA_PROXIES / OWL_PROX5_SOCKS5 / OWL_HTTPS_PROXY into
+    one list of proxy URLs to seed into the pool."""
+    getenv = environ.get if environ is not None else os.getenv
+    proxies = _env_list("OWL_EXTRA_PROXIES", getenv=getenv)
+    for env_name, default_scheme in (("OWL_PROX5_SOCKS5", "socks5"), ("OWL_HTTPS_PROXY", "https")):
+        value = getenv(env_name)
+        if value:
+            proxies.append(value if "://" in value else f"{default_scheme}://{value}")
+    return proxies
+
 
 # ─── Prometheus Metrics ──────────────────────────────────────────
 REQUESTS_TOTAL = Counter(
@@ -221,14 +250,23 @@ class OwlServer:
 # ─── Main ────────────────────────────────────────────────────────
 async def main():
     import argparse
+
     parser = argparse.ArgumentParser(description="🦉 OWL-AGENT v4.5 Server")
     parser.add_argument("--host", default="0.0.0.0", help="Bind address")
     parser.add_argument("--api-port", type=int, default=60000, help="API port")
     parser.add_argument("--metrics-port", type=int, default=9090, help="Prometheus port")
-    parser.add_argument("--countries", nargs="+", default=["US", "GB", "PH"],
-                        help="Preferred proxy countries")
-    parser.add_argument("--redis", action="store_true", help="Enable Redis state sharing")
-    parser.add_argument("--redis-url", default="redis://localhost:6379", help="Redis URL")
+    parser.add_argument("--countries", nargs="+", default=_env_list("OWL_PROXY_COUNTRIES", ["US", "GB", "PH"]),
+                        help="Preferred proxy countries (or OWL_PROXY_COUNTRIES)")
+    parser.add_argument("--redis", action="store_true", default=_env_bool("OWL_REDIS_ENABLED"),
+                        help="Enable Redis state sharing (or OWL_REDIS_ENABLED)")
+    parser.add_argument("--redis-url", default=os.getenv("OWL_REDIS_URL", "redis://localhost:6379"),
+                        help="Redis URL (or OWL_REDIS_URL)")
+
+    # Self-hosted proxy endpoints: prox5 SOCKS5 server, madeye/https_proxy.
+    # All are merged into the pool via --extra-proxies / OWL_EXTRA_PROXIES.
+    parser.add_argument("--extra-proxies", default=",".join(_collect_extra_proxies()),
+                        help="Comma-separated proxy URLs to seed into the pool "
+                             "(or OWL_EXTRA_PROXIES / OWL_PROX5_SOCKS5 / OWL_HTTPS_PROXY)")
     parser.add_argument("--no-curl-cffi", action="store_true", help="Disable curl_cffi")
     parser.add_argument("--ab-test", action="store_true", help="Enable A/B testing for proxy strategies")
     parser.add_argument("--ml", action="store_true", help="Enable ML predictor for proxy selection")
@@ -250,9 +288,11 @@ async def main():
         countries=args.countries,
         use_redis=args.redis,
         redis_url=args.redis_url,
+        extra_proxies=[p for p in args.extra_proxies.split(",") if p],
     )
     server._start_time = time.time()
 
+    _extra_display = " ".join(p for p in args.extra_proxies.split(",") if p) or "none"
     print(f"""
 🦉 OWL-AGENT v4.5 Server
 {'=' * 55}
@@ -263,6 +303,7 @@ async def main():
   curl_cffi:  {'enabled' if not args.no_curl_cffi else 'disabled'}
   A/B Test:  {'enabled' if args.ab_test else 'disabled'}
   ML:        {'enabled' if args.ml else 'disabled'}
+  Extra:     {_extra_display}
 {'=' * 55}
     """)
 
@@ -277,5 +318,10 @@ async def main():
         await server.stop()
 
 
-if __name__ == "__main__":
+def cli():
+    """Console-script entry point for the `owl-server` command."""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli()
