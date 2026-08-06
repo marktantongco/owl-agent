@@ -45,6 +45,27 @@ make help          # list all targets
 
 `make server` is equivalent to `bash run.sh server --host 0.0.0.0 --api-port $PORT`.
 
+### Install as a Python package
+
+OWL-AGENT is also a proper Python package (`pyproject.toml`, flat layout):
+
+```bash
+make install                 # pip install -e . into venv/
+# or: pip install .          # anywhere — installs the owl-server console command
+make wheel                   # build a distributable wheel into dist/
+```
+
+Once installed, start the server with the console script:
+
+```bash
+owl-server --host 0.0.0.0 --api-port 60000
+```
+
+The package installs `owl_server`, `proxy_defense`, `ml_models` and
+`plugin_loader` as top-level importable modules (same flat layout as the repo,
+so existing imports keep working). `mcp-server.py` is intentionally not
+packaged (hyphenated filename) — run it as a plain script: `python mcp-server.py`.
+
 ---
 
 ## Features
@@ -87,7 +108,7 @@ curl -sSL https://raw.githubusercontent.com/your-org/owl-agent/main/install.sh |
 mkdir -p ~/.owl-agent/{cache/http,cache/models,config,plugins}
 
 # Install Python dependencies
-pip install httpx[socks] aiohttp aiofiles proxybroker2 litproxy resilient-httpx \
+pip install httpx[socks] aiohttp aiofiles proxybroker2 resilient-httpx \
     circuitbreaker curl_cffi redis prometheus-client \
     scikit-learn numpy xgboost joblib watchdog
 
@@ -371,7 +392,7 @@ and/or a stealth HTTPS forward proxy ([https_proxy](https://github.com/madeye/ht
 and wire them in with one env var. See [`proxies/README.md`](proxies/README.md).
 
 ```bash
-# Build (needs Go 1.21+ and Rust 1.70+ on your machine)
+# Build (needs Go 1.22+ and Rust 1.70+ on your machine)
 bash proxies/build.sh
 
 # Run prox5 (SOCKS5 on 127.0.0.1:42069)
