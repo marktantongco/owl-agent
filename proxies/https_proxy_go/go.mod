@@ -1,4 +1,4 @@
-module github.com/owl-agent/owl-agent/proxies/https_proxy_go
+module github.com/marktantongco/owl-agent/proxies/https_proxy_go
 
 go 1.22
 

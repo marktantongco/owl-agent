@@ -11,10 +11,11 @@ fi
 
 mkdir -p ../bin
 
-# Init module if missing, then pull prox5 and build.
-go mod init owl-prox5 2>/dev/null || true
-go mod tidy
-go build -trimpath -o ../bin/owl-prox5 .
+# Version stamping: VERSION env wins, else nearest git tag, else "dev".
+VERSION="${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}"
 
-echo "✅ Built proxies/bin/owl-prox5"
+go mod tidy
+go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o ../bin/owl-prox5 .
+
+echo "✅ Built proxies/bin/owl-prox5 (version $VERSION)"
 echo "   Run: bash run.sh prox5 -listen 127.0.0.1:42069 -file proxies.txt"

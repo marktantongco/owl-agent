@@ -15,6 +15,8 @@ jobs:
   build-prox5:
     name: Build prox5 (Go)
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +40,8 @@ jobs:
   build-https-proxy-go:
     name: Build https_proxy (Go port)
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -99,3 +103,31 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
+
+  publish-pypi:
+    name: Publish owl-agent to PyPI
+    needs: [release]
+    # Only clean semver tags publish (v0.4.5-test and other suffix tags are skipped).
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

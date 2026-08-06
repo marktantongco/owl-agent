@@ -23,6 +23,10 @@ bash run.sh prox5 -listen 127.0.0.1:42069 -file proxies.txt
   (`http://`, `https://`, `socks4://`, `socks5://`). prox5 validates them and
   keeps only working endpoints.
 - `-listen` — SOCKS5 bind address (default `127.0.0.1:42069`).
+- `-version` — print the build version and exit.
+
+Builds are version-stamped: `VERSION=… bash proxies/prox5/build.sh` (defaults to
+nearest git tag, then `dev`).
 
 ## Wire into OWL-AGENT
 

@@ -11,6 +11,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -19,10 +20,19 @@ import (
 	"git.tcp.direct/kayos/prox5"
 )
 
+// version is stamped at build time via -ldflags "-X main.version=...".
+var version = "dev"
+
 func main() {
 	listen := flag.String("listen", "127.0.0.1:42069", "SOCKS5 listen address")
 	file := flag.String("file", "", "text file with proxies, one per line (http/https/socks4/socks5)")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("owl-prox5 %s\n", version)
+		return
+	}
 
 	engine := prox5.NewProxyEngine()
 
@@ -60,7 +70,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("prox5 SOCKS5 server listening on %s", *listen)
+	log.Printf("owl-prox5 %s — SOCKS5 rotating proxy server on %s", version, *listen)
 	log.Printf("test: curl --socks5 %s https://httpbin.org/ip", *listen)
 
 	// Block until SIGINT/SIGTERM.

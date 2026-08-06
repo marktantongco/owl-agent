@@ -1,4 +1,4 @@
-module owl-prox5
+module github.com/marktantongco/owl-agent/proxies/prox5
 
 go 1.22
 

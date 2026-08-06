@@ -30,6 +30,10 @@ bash proxies/build.sh            # or: bash proxies/https_proxy_go/build.sh
 
 Requires Go 1.22+.
 
+Builds are version-stamped: `VERSION=… bash proxies/https_proxy_go/build.sh`
+(defaults to nearest git tag, then `dev`). Check it with
+`proxies/bin/https_proxy_go version`.
+
 ## Run
 
 ```bash

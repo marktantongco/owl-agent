@@ -16,6 +16,8 @@ jobs:
   prox5:
     name: Build prox5 (Go)
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,6 +45,8 @@ jobs:
   https-proxy-go:
     name: Build https_proxy (Go port)
     runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

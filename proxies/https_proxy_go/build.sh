@@ -10,9 +10,13 @@ if ! command -v go >/dev/null 2>&1; then
 fi
 
 mkdir -p ../bin
-go mod tidy
-go build -trimpath -ldflags="-s -w" -o ../bin/https_proxy_go .
 
-echo "✅ Built proxies/bin/https_proxy_go"
+# Version stamping: VERSION env wins, else nearest git tag, else "dev".
+VERSION="${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}"
+
+go mod tidy
+go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o ../bin/https_proxy_go .
+
+echo "✅ Built proxies/bin/https_proxy_go (version $VERSION)"
 echo "   Configure: cp proxies/https_proxy_go/config.example.yaml config.yaml"
 echo "   Run:       proxies/bin/https_proxy_go run --config config.yaml"

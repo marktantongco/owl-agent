@@ -48,3 +48,28 @@ so HTTPS URLs tunnel through them via CONNECT instead of falling back to direct.
   any mix of `http://`, `https://`, `socks4://`, `socks5://` endpoints.
 - https_proxy is TLS-first (Let's Encrypt via ACME on port 443, needs a DNS record).
   For local testing without a public domain, prefer prox5.
+
+## Module paths & versioning
+
+- Each Go module carries its canonical path matching this repo
+  (`github.com/marktantongco/owl-agent/proxies/prox5` and
+  `github.com/marktantongco/owl-agent/proxies/https_proxy_go`).
+- Binaries are version-stamped at build time. `VERSION` env wins over the
+  nearest git tag (`git describe --tags`), which wins over `dev`:
+
+  ```bash
+  bash proxies/build.sh                      # stamps nearest git tag (or dev)
+  VERSION=v0.4.5-test bash proxies/build.sh  # explicit version
+  ```
+
+- CI stamps tag builds with the tag name automatically
+  (`github.ref_name` on `v*` pushes, commit SHA otherwise). Check a binary with
+  `proxies/bin/https_proxy_go version` or `proxies/bin/owl-prox5 -version`.
+
+## Canonical sources
+
+The two Go projects are developed in their own public repositories; this tree
+keeps working copies so the OWL-AGENT bundle stays self-contained:
+
+- prox5 wrapper → <https://github.com/marktantongco/owl-prox5>
+- https_proxy Go port → <https://github.com/marktantongco/owl-https-proxy>

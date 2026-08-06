@@ -10,7 +10,8 @@ import (
 	"os"
 )
 
-const version = "1.0.0"
+// version is stamped at build time via -ldflags "-X main.version=...".
+var version = "dev"
 
 func usage() {
 	fmt.Fprintf(os.Stderr, `https_proxy_go %s — stealth HTTPS/HTTP forward proxy (Go port of madeye/https_proxy)
@@ -56,6 +57,8 @@ func main() {
 		if err := runSetup(); err != nil {
 			log.Fatalf("setup error: %v", err)
 		}
+	case "version", "--version", "-v":
+		fmt.Println(version)
 	case "help", "--help", "-h":
 		usage()
 	default:

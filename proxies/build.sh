@@ -4,7 +4,10 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "🦉 Building OWL-AGENT proxy integrations"
+# Version stamping: VERSION env wins, else nearest git tag, else "dev".
+export VERSION="${VERSION:-$(git describe --tags --always 2>/dev/null || echo dev)}"
+
+echo "🦉 Building OWL-AGENT proxy integrations (version $VERSION)"
 echo "─────────────────────────────────────────"
 "$PWD/prox5/build.sh"
 "$PWD/https_proxy_go/build.sh"
